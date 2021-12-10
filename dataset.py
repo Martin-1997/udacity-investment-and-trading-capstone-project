@@ -131,6 +131,9 @@ class Dataset:
         scaled_dataset = scaler.fit_transform(dataset)
         x_train, y_train, x_test, y_test = split_dataset(scaled_dataset, days = days, train_fraction = train_fraction)
         return x_train, y_train, x_test, y_test, scaler
+    
+    def return_row_array(self):
+        return self.df.as_matrix()
 
 def return_rmse(predictions, y_test): 
     '''

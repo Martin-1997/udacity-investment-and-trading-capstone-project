@@ -99,8 +99,9 @@ class LSTM_model(Model):
         _engine.compile(optimizer='adam', loss='mean_squared_error')
         super(LSTM_model, self).__init__( _name, _engine, _ticker, _start_date, _end_date, _pred_base_range)
 
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler
+        
+# from sklearn.pipeline import Pipeline
+# from sklearn.preprocessing import MinMaxScaler
 
 # class LSTM_pipeline():
 #     def __init__(self, _model):
