@@ -1,0 +1,47 @@
+
+{% extends 'base.html'%}
+{% block content %}
+<body>
+    <div class="ui cointainer">
+        <h1>Stock price prediction application</h1>
+
+        <p>
+            Welcome to the Udacity stock price predictor. This webapp can be used to create a price prediction model based on a set of tickers and a time range.
+            In the background, the price data for the selected tickers is pulled from Yahoo Finance. Then, a machine learning model is created and trained based 
+            on the historic price data. After the training process is finished, the model can be queried to predict the price of certain tickers used for the model
+            training on future dates.
+        </p>
+
+        <form action="" method='POST' name="createModelForm">
+            <p> 
+                Fill out the following form to create a ML model
+            </p>
+            {{ form.csrt_token }}
+            <div>
+                <h3>Select a daterange</h3>
+                {{ form.startdate.label }} {{form.startdate(class="datepicker")}}
+                {{ form.enddate.label }} {{form.enddate(class="datepicker")}}
+            </div>
+            <div>
+                <h3>Select tickers to train a model</h3>
+                {{ form.model_tickers.label }} {{ form.model_tickers(class = "dropdown",  multiple = True) }}
+            </div>
+            <p> 
+                Pressing the "Create Model" button creates the model in the background and forwards you to the next page.
+            </p>
+            <div>
+            {{form.submit(class = "ui button")}}
+            </div>
+        </form>
+
+    </div>
+</body>
+<script>
+    $(document).ready(function(){
+        $('.selectpicker').selectpicker()
+    });
+</script>
+{% endblock %}
+
+
+
