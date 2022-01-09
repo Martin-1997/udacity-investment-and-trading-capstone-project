@@ -1,6 +1,14 @@
 {% extends 'base.html' %}
 {% block content %}
 <body>
-    Prediction
+    <div class="ui container">
+        <div class="ui segment">
+            <h1>Prediction</h1>
+        </div>
+        
+        <div class="ui segment">
+            <p>{{ df_forecast_new }}</p>
+        </div>
+    </div>
 </body>
 {% endblock %}

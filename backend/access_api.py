@@ -32,8 +32,6 @@ def get_tickers():
         ]
 
 
- 
-
 def get_stock_data(ticker, start_date, end_date = datetime.today(), date_index = True, columns="all"):
     '''
     Returns stock data from yahoo for the specified ticker symbols, start and end dates.
@@ -74,7 +72,7 @@ def get_stock_data(ticker, start_date, end_date = datetime.today(), date_index =
         print(f"Data could not be fetched for ticker {ticker}")
 
 
-def get_adj_close_df(ticker_symbols, start_date, end_date = datetime.today()):
+def get_adj_close_df(ticker_symbols, start_date, end_date = datetime.today(), date_index = True, dropna_rows = True):
     """
     Returns a dataframe with the adjusted close prices for each ticker. Each column will represent the adjusted close price for single ticker.
     
@@ -94,7 +92,17 @@ def get_adj_close_df(ticker_symbols, start_date, end_date = datetime.today()):
         column = pdr.data.DataReader(ticker, 'yahoo', start = start_date, end = end_date)["Adj Close"]
         column.name = ticker
         df = pd.concat([df, column], axis = 1)
-   # df = pd.DataFrame(data = columns) #, columns=ticker_symbols, index = range(1, len(columns[1])))
+
+    if dropna_rows:
+        # Necessary when we have ticker symbols (f.e. Bitcoin) which has a price also for weekends - we need to drop these prices because stocks do not have prices on the weekend
+        df = df.dropna()
+
+    if not date_index:
+        # Extract the dates from the dataframe
+        df["date"] = pd.to_datetime(df.index)
+        
+        # Add a numerical index
+        df.index = range(1, df.shape[0] + 1)
     return df
 
 

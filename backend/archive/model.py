@@ -85,7 +85,7 @@ class Model:
         return rescaled_prediction[ - n_days: ,0]
     
     def train(self, x_train, y_train, batch_size, epochs):
-        # model = get_model(input_shape = x_train.shape[1])
+        # model = create_model(input_shape = x_train.shape[1])
         self.engine.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
         
 

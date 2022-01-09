@@ -68,7 +68,8 @@ def get_prediction(tickers, target_var, start_date, end_date, n_days_for_predict
         # trainX.append(df_for_training_scaled[i - n_past:i, 0:df_for_training.shape[1]])
         # trainY.append(df_for_training_scaled[i + n_future - 1:i + n_future, 0])
         trainX.append(df_for_training_scaled[i - n_past:i, 0:df_for_training.shape[1]])
-        trainY.append(df_for_training_scaled[i + n_future - 1:i + n_future, target_var_x_index])
+        # trainY.append(df_for_training_scaled[i + n_future - 1:i + n_future, target_var_x_index])
+        trainY.append(df_for_training_scaled[i + n_future - 1:i + n_future])
 
 
     trainX, trainY = np.array(trainX), np.array(trainY)
@@ -117,8 +118,8 @@ def get_prediction(tickers, target_var, start_date, end_date, n_days_for_predict
 
 
     # list(train_dates)[-n_past + 1], <- the +1 to avoid to get a prediction for the last day in the timerange
-    predict_period_dates = pd.date_range(list(train_dates)[-n_past - 1], periods=n_days_for_prediction, freq=us_bd).tolist()
-    # print(predict_period_dates)
+    dates_to_predict = pd.date_range(list(train_dates)[-n_past - 1], periods=n_days_for_prediction, freq=us_bd).tolist()
+    # print(dates_to_predict)
 
     #Make prediction
     prediction = model.predict(trainX[-n_days_for_prediction:]) #shape = (n, 1) where n is the n_days_for_prediction
@@ -133,7 +134,7 @@ def get_prediction(tickers, target_var, start_date, end_date, n_days_for_predict
 
     # Convert timestamp to date
     forecast_dates = []
-    for time_i in predict_period_dates:
+    for time_i in dates_to_predict:
         forecast_dates.append(time_i.date())
     df_forecast = pd.DataFrame({'Date':np.array(forecast_dates), target_var :y_pred_future})
     df_forecast['Date'] = pd.to_datetime(df_forecast['Date'])

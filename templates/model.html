@@ -1,27 +1,24 @@
 {% extends 'base.html' %}
 {% block content %}
 <body>
-<h2>The model was successfully trained</h3>
+    <div class="ui container">
+        <div class="ui segment">
+            <h1>The model was successfully trained</h1>
+        </div>
 
-<h4>Start Date is: {{start_date}}</h4>
-<h4>End Date is: {{end_date}}</h4>
-<h4>Tickers are: {{model_tickers}}</h4>
-
-
-<form action="" method='POST' name="prediction_request">
-    {{ form.csrt_token }}
-    <div>
-        <h3>Select a number of days</h3>
-        {{ form.n_days.label }} {{form.n_days()}}
+        <div class="ui segment">
+            <h4>Start Date is: {{startdate}}</h4>
+            <h4>End Date is: {{enddate}}</h4>
+            <h4>Tickers are: {{model_tickers}}</h4>
+            <h4>Ticker to predict is: {{ model_target }}</h4>
+        </div>
+        <div class="ui segment">
+            <form action="/prediction" method='POST' name="prediction_request">
+                <label for="num_days">Select a number of days to predict:</label>
+                <input type="number" id="num_days" name="num_days" min="1" max="10">
+                <input type="submit">
+            </form>
+        </div>
     </div>
-    <div>
-        <h3>Select tickers to predict</h3>
-        {{ form.ticker_predict.label }} {{ form.ticker_predict(class="mydropdown selectpicker")}}
-    </div>
-    <div>
-    {{form.submit(class="ui button")}}
-    </div>
-</form>
-
 </body>
 {% endblock %}
