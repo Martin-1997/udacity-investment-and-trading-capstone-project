@@ -1,3 +1,16 @@
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
+
+# Type: Product
+def add(product):
+    db.session.add(product)
+    db.session.commit()
+
+def reset():
+    db.drop_all()
+    db.create_all()
+
 import sqlite3
 
 conn = sqlite3.connect('database.db')# If the file/datebase does not exist, it gets created

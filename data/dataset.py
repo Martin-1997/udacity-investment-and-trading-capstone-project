@@ -173,3 +173,38 @@ def rescale_data(data, scaler):
     - rescaled_data: The rescaled data
     '''
     return scaler.inverse_transform(data)
+
+def extend_df(df, predictions, new_timerange = None):
+    '''
+    This methods takes a df of values and appends the predicted values to the dataframe. The new timerange is used as index.
+    '''
+    column_name = df.columns[0]
+    if new_timerange == None:
+        new_timerange = create_timerange_from_now()
+    date_index = pd.DatetimeIndex(new_timerange).normalize()
+    new_df = pd.DataFrame(data = predictions, index = date_index, columns = [column_name])
+    combined_df = pd.concat([df, new_df])
+    return combined_df  
+
+
+def create_timerange_from_now(include_today = True, n_days = 5, weekends = False):
+    '''
+    Returns a list of all future dates from now
+    '''
+    day_list = list()
+    if include_today:
+        i = 0
+    else:
+        i = 1
+    while len(day_list) < n_days:
+        next_day = datetime.now() + timedelta(days=i)
+        i = i + 1
+        # Consider if the day is on the weekend
+        if not weekends:
+            if next_day.weekday() < 5:
+                day_list.append(next_day)
+        else:
+            day_list.append(next_day)
+    return day_list
+
+      
