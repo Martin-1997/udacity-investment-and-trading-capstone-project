@@ -2,12 +2,15 @@ import logging
 from flask import Flask, session, render_template, redirect, sessions, url_for, request, make_response, escape, jsonify, Response, abort, Request
 import requests
 from tensorflow.python.keras.utils.generic_utils import default
-from backend.access_api import get_tickers
-from backend.model import create_model, make_predictions, save_model, load_model, create_modelname
-from backend.numpy_json import encode_array, decode_array
-from datetime import date, timedelta
 from tensorflow.python.keras.utils.generic_utils import default
 import numpy as np
+
+from data_api.db import initialize_db, return_engine, get_ticker_strings
+from datetime import datetime as dt
+
+from models.model_func import create_model, save_model
+
+engine = return_engine()
 
 
 app = Flask(__name__)
@@ -38,7 +41,7 @@ def notfound(e):
 @app.route("/",defaults= {'path' : ''})
 @app.route("/<path:path>")
 def index(path):
-    tickers, names = get_tickers()
+    tickers = get_ticker_strings(engine)
     return render_template('index.html', tickers = tickers)
     
 
@@ -46,8 +49,9 @@ def index(path):
 def model():
     if request.method == "POST":
         # Assign the data from the form to the session to make it accessible when needed
+        session['model_name'] = request.form.getlist('model_name')
         session['model_tickers'] = request.form.getlist('model_tickers')
-        session['model_target'] = request.form['model_target']
+       # session['model_target'] = request.form['model_target']
         session['startdate'] = request.form['startdate']
         session['enddate'] = request.form['enddate']
 
@@ -55,11 +59,11 @@ def model():
         model, last_data, scaler = create_model(session['model_tickers'], session['startdate'], session['enddate'])
 
         # Create a model name
-        modelname = create_modelname(session['model_tickers'], session['startdate'], session['enddate'])
-        session["modelname"] = modelname
+        # modelname = create_modelname(session['model_tickers'], session['startdate'], session['enddate'])
+        modelname = session["modelname"]
         app.logger.info(f"Model {modelname} successfully created")
         # Store the model
-        save_model(model, modelname)
+        save_model(model, modelname)       
 
         # print("scaler.__dict__")
         # print(scaler.__dict__)

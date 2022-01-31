@@ -15,7 +15,13 @@
         
         <div class="ui segment">
             <form action="/model" method='POST' name="createModelForm">
-                <label for="model_tickers">Select the tickers to build up the model </label>
+                <label for="model_name">Specify a name for the model: </label>
+                <br>
+                <input type="text" name="model_name" id="model_name" value="Test-model"></input>
+                <br>
+                <br>
+
+                <label for="model_tickers">Select the tickers to build up the model: </label>
                 <select name = "model_tickers" id="model_tickers" class="ui search fluid dropdown" multiple="" onchange="update_model_target">
                     {% for ticker in tickers %}
                     {% if tickers.index(ticker) == 0: %}
@@ -27,12 +33,14 @@
                  </select>
                  <br>
 
-                 <label for="model_target"> Select the ticker to predict with the model: </label>
+                 <!-- <label for="model_target"> Select the ticker to predict with the model: </label>
                  <select name = "model_target" id="model_target" class="ui search fluid dropdown">
                  </select>
-                 <br>
+                 <br> -->
                  
-                 <label for="date_pickers"> Select the time range to train the model on</label>
+                 <label for="date_pickers"> Select the time range to train the model on: </label>
+                 <br>
+                 <br>
                  <div class="two fields" id="date_pickers">
                     <div class="field">
                       <label>Start date</label>
@@ -83,59 +91,59 @@
             selectAdjacentDays: true,
         });
 
-        let model_tickers = document.getElementById("model_tickers")
-        let model_target = document.getElementById("model_target")
+        // let model_tickers = document.getElementById("model_tickers")
+        // let model_target = document.getElementById("model_target")
         
-        function getSelectValues(select) {
-            var result = [];
-            var options = select && select.options;
-            var opt;
+        // function getSelectValues(select) {
+        //     var result = [];
+        //     var options = select && select.options;
+        //     var opt;
 
-            for (var i=0, iLen=options.length; i<iLen; i++) {
-                opt = options[i];
+        //     for (var i=0, iLen=options.length; i<iLen; i++) {
+        //         opt = options[i];
 
-                if (opt.selected) {
-                result.push(opt.value || opt.text);
-                }
-            }
-            return result;
-        }
+        //         if (opt.selected) {
+        //         result.push(opt.value || opt.text);
+        //         }
+        //     }
+        //     return result;
+        // }
 
-        function update_dropdowns() {
-            tickers = getSelectValues(model_tickers)
+        // function update_dropdowns() {
+        //     tickers = getSelectValues(model_tickers)
 
-            let optionHTML = "";
-            // Distinguish the first iteration from the others, to correctly preselect the first item
-            var first = true;
-            for (let ticker of tickers){
-                if (first){
-                    optionHTML += "<option selected value='" + ticker + "'>" + ticker + '</option>';
-                    first = false;
-                } else {
-                    optionHTML += "<option value='" + ticker + "'>" + ticker + '</option>';
-                }    
-            }
-            model_target.innerHTML = optionHTML;
-        }
+        //     let optionHTML = "";
+        //     // Distinguish the first iteration from the others, to correctly preselect the first item
+        //     var first = true;
+        //     for (let ticker of tickers){
+        //         if (first){
+        //             optionHTML += "<option selected value='" + ticker + "'>" + ticker + '</option>';
+        //             first = false;
+        //         } else {
+        //             optionHTML += "<option value='" + ticker + "'>" + ticker + '</option>';
+        //         }    
+        //     }
+        //     model_target.innerHTML = optionHTML;
+        // }
 
-        model_tickers.onchange = function() {
-            tickers = getSelectValues(model_tickers)
+        // model_tickers.onchange = function() {
+        //     tickers = getSelectValues(model_tickers)
 
-            let optionHTML = "";
-            // Distinguish the first iteration from the others, to correctly preselect the first item
-            var first = true;
-            for (let ticker of tickers){
-                if (first){
-                    optionHTML += "<option selected value='" + ticker + "'>" + ticker + '</option>';
-                    first = false;
-                } else {
-                    optionHTML += "<option value='" + ticker + "'>" + ticker + '</option>';
-                }    
-            }
-            model_target.innerHTML = optionHTML;
-        }
-        // initialize the default value for model_tickers
-        model_tickers.onchange();
+        //     let optionHTML = "";
+        //     // Distinguish the first iteration from the others, to correctly preselect the first item
+        //     var first = true;
+        //     for (let ticker of tickers){
+        //         if (first){
+        //             optionHTML += "<option selected value='" + ticker + "'>" + ticker + '</option>';
+        //             first = false;
+        //         } else {
+        //             optionHTML += "<option value='" + ticker + "'>" + ticker + '</option>';
+        //         }    
+        //     }
+        //     model_target.innerHTML = optionHTML;
+        // }
+        // // initialize the default value for model_tickers
+        // model_tickers.onchange();
     </script>
 </body>
 {% endblock %}

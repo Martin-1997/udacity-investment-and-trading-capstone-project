@@ -1,13 +1,20 @@
 # Imports
 from keras.models import Sequential
-from keras.layers import Dense, LSTM
-from sklearn.preprocessing import MinMaxScaler
+from keras.layers import Dense, LSTM, Dropout
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.pipeline import Pipeline
 import tensorflow as tf
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
+from datetime import datetime
 # pickle
 import pickle
 import numpy as np
+import matplotlib as plt
+import pandas as pd
+from pandas.tseries.offsets import CustomBusinessDay
+from pandas.tseries.holiday import USFederalHolidayCalendar
+import keras
+
 
 def print_performance(history):
     print("Model performance:")
@@ -22,7 +29,7 @@ def get_model(input_shape, output_shape, print_summary = True):
     model.add(LSTM(64, activation='relu', input_shape=(input_shape[1], input_shape[2]), return_sequences=True))
     model.add(LSTM(32, activation='relu', return_sequences=False))
     model.add(Dropout(0.2))
-    model.add(Dense(output_shape[1]))
+    model.add(Dense(output_shape[2]))
     model.compile(optimizer='adam', loss='mse')
     print("Model was successfully created:")
     if print_summary:
@@ -49,17 +56,16 @@ def create_train_test_arrays(n_past, df):
     return trainX, trainY
 
 
-def create_model(tickers, start_date, end_date,  n_past = 60):
+def create_model(ticker_data, n_past = 60):
     # Get the data from the API
-    df = api.get_adj_close_df(tickers, start_date, end_date, date_index=False)
     
     # Extract the dates from the dataframe
-    dates = df["date"]
-    df.drop(["date"], axis=1, inplace=True)
+    dates = ticker_data["date"]
+    ticker_data.drop(["date"], axis=1, inplace=True)
 
     # New dataframe with only training data
-    df_for_training = df.astype(float)
-    print(f"Data columns used to build model: {df.columns.values}")
+    df_for_training = ticker_data.astype(float)
+    print(f"Data columns used to build model: {ticker_data.columns.values}")
 
     #LSTM uses sigmoid and tanh that are sensitive to magnitude so values need to be normalized
     # normalize the dataset
@@ -85,17 +91,53 @@ def create_model(tickers, start_date, end_date,  n_past = 60):
     return model, trainX[-1], scaler
 
 
-def create_modelname(model_tickers, startdate, enddate):
-    # Create a model name
-    modelname = ""
-    for i  in range(len(model_tickers)):
-        if i < len(model_tickers) - 1:
-            modelname += model_tickers[i] + "_"
-        else:
-            modelname += model_tickers[i] + "-"
-    modelname += str(startdate) + "-"
-    modelname += str(enddate)
-    return modelname
+# def create_model(tickers, start_date, end_date,  n_past = 60):
+#     # Get the data from the API
+#     df = api.get_adj_close_df(tickers, start_date, end_date, date_index=False)
+    
+#     # Extract the dates from the dataframe
+#     dates = df["date"]
+#     df.drop(["date"], axis=1, inplace=True)
+
+#     # New dataframe with only training data
+#     df_for_training = df.astype(float)
+#     print(f"Data columns used to build model: {df.columns.values}")
+
+#     #LSTM uses sigmoid and tanh that are sensitive to magnitude so values need to be normalized
+#     # normalize the dataset
+#     scaler = StandardScaler()
+#     scaler = scaler.fit(df_for_training)
+#     df_for_training_scaled = scaler.transform(df_for_training)
+#     # print(f"Dataset successfully scaled. n_features of the scaler: {scaler.n_features_in_}")
+
+#     #As required for LSTM networks, we require to reshape an input data into n_samples x timesteps x n_features. 
+#     #In this example, the n_features is 5. We will make timesteps = 14 (past days data used for training). 
+#     trainX, trainY = create_train_test_arrays(n_past=n_past, df = df_for_training_scaled)
+
+#     print(f"model input shape: {trainX.shape}")
+#     print(f"model output shape: {trainY.shape}")
+#     model = get_model(input_shape = trainX.shape, output_shape = trainY.shape, print_summary = False)
+
+#     # fit the model
+#     history = model.fit(trainX, trainY, epochs=1, batch_size=16, validation_split=0.1, verbose=1)
+#     print("Model training successfull")
+
+#     # print_performance(history)
+
+#     return model, trainX[-1], scaler
+
+
+# def create_modelname(model_tickers, startdate, enddate):
+#     # Create a model name
+#     modelname = ""
+#     for i  in range(len(model_tickers)):
+#         if i < len(model_tickers) - 1:
+#             modelname += model_tickers[i] + "_"
+#         else:
+#             modelname += model_tickers[i] + "-"
+#     modelname += str(startdate) + "-"
+#     modelname += str(enddate)
+#     return modelname
 
 
 def make_predictions(model, last_date_model, last_data, scaler, n_days_for_prediction, model_tickers):
@@ -116,12 +158,12 @@ def make_predictions(model, last_date_model, last_data, scaler, n_days_for_predi
 
     # get price data of the last n_past days
     # for date in dates_to_predict:
-    print(f"Dates for which we want to predict a value: {forecast_dates}")
+    print(f"Dates for which we want to predict a value: \n {forecast_dates} \n")
 
     #Make prediction
     # prediction = model.predict(trainX[-n_days_for_prediction:]) #shape = (n, 1) where n is the n_days_for_prediction
     prediction = model.predict(last_data)
-    print("Prediction successfully created")
+    print(f"Prediction successfully created with shape {prediction.shape}")
 
     #Perform inverse transformation to rescale back to original range
     #Since we used 5 variables for transform, the inverse expects same dimensions
@@ -130,11 +172,14 @@ def make_predictions(model, last_date_model, last_data, scaler, n_days_for_predi
     # prediction_copies = np.repeat(prediction, scaler.n_features_in_, axis=-1)
     # y_pred_future = scaler.inverse_transform(prediction_copies)[:,target_var_x_index]
 
-    y_pred_future = scaler.inverse_transform(prediction ) # [:] #,target_var_x_index]
+    y_pred_future = scaler.inverse_transform(prediction) # [:] #,target_var_x_index]
     print(f"Shape of y_pred_future: {y_pred_future.shape}")
 
+    print(f"Y_pred_future: \n {y_pred_future} \n")
+
+    print(f"Forecast dates: \n {forecast_dates} \n")
     
-    df_forecast = pd.DataFrame({'Date':np.array(forecast_dates), model_tickers :y_pred_future})
+    df_forecast = pd.DataFrame({'Date': forecast_dates[0], model_tickers : y_pred_future})
     df_forecast['Date'] = pd.to_datetime(df_forecast['Date'])
 
     # original = df[['Date', target_var]].copy()
@@ -162,6 +207,7 @@ def save_model(model, filename):
 def load_model(name):
     return keras.models.load_model(f'./models/{name}.h5')
 
+
 def setup_model_dict(ticker, name, start_date, end_date = datetime.today(), pred_base_range = 60):
     # Create dictionary to store the model and its metadata
     model_dict = {}
@@ -172,10 +218,12 @@ def setup_model_dict(ticker, name, start_date, end_date = datetime.today(), pred
     model_dict["pred_base_range"] = pred_base_range
     
     # Get the data, rescale it and divide it into training and test set
-    df = get_adj_close_df([ticker], start_date, end_date = datetime.today())
-    df_values = df.values
-    scaler, scaled_dataset = scale_data(df_values)
-    x_train, y_train, x_test, y_test, training_data_len = train_test_split(scaled_dataset, days = pred_base_range)
+
+    # This data should be given to the function
+    # df = get_adj_close_df([ticker], start_date, end_date = datetime.today())
+    # df_values = df.values
+    # scaler, scaled_dataset = scale_data(df_values)
+    # x_train, y_train, x_test, y_test, training_data_len = train_test_split(scaled_dataset, days = pred_base_range)
     
     # Train a model with the data
     

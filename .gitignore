@@ -2,6 +2,9 @@
 # vs code settings
 .vscode
 
+# data directory
+data/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
