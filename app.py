@@ -7,7 +7,7 @@ from datetime import datetime as dt
 import joblib
 import os
 
-from data_api.db import initialize_db, return_engine, get_ticker_strings, load_ticker_by_ticker
+from data_api.db import initialize_db, return_engine, get_ticker_strings, load_ticker_by_ticker, update_price_data_sets
 from models.model_func import create_model, save_model, load_train_data, load_model, make_predictions
 
 engine = return_engine()
@@ -95,10 +95,43 @@ def prediction():
         # Check if values are set
         return "only POST is supported"
 
+def empty_data_dirs():
+    """
+    This method delets all files in the last_data, models and scalers-folders
+    """
+    current_dir = os.path.dirname(__file__)
+    model_dir = os.path.join(current_dir, "data/models")
+    scaler_dir = os.path.join(current_dir, "data/scalers")
+    last_data_dir = os.path.join(current_dir, "data/last_data")
+    for root, dirs, files in os.walk(model_dir):
+        for file in files:
+            os.remove(os.path.join(root, file))
+    for root, dirs, files in os.walk(scaler_dir):
+        for file in files:
+            os.remove(os.path.join(root, file))
+    for root, dirs, files in os.walk(last_data_dir):
+        for file in files:
+            os.remove(os.path.join(root, file))
+    return True
+        
 
-@app.route("/config")
+@app.route("/config", methods=['GET', 'POST'])
 def config():
-    return render_template('config.html')
+    if request.method == 'POST':
+        if "reset_db" in request.form:
+            initialize_db()
+            return render_template('config.html', information = "Database successfully reset")
+        elif "update_db" in request.form:
+            update_price_data_sets(engine)
+            return render_template('config.html', information = "Database successfully updated")
+        elif "delete_models" in request.form:
+            empty_data_dirs()
+            return render_template('config.html', information = f"All models have been deleted")
+        else:
+            return render_template('config.html', information = "error")
+    elif request.method == 'GET':
+        return render_template('config.html', information = "Test")
+        
 
 
 @app.route("/about")

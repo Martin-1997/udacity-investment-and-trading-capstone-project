@@ -5,7 +5,24 @@
     <div class="ui container segment">
         <h1>Application config</h1>
         <p>This page allows you to perform various settings for the application</p>
-        
+
+        <p class="ui segment" id="information">{{ information }}</p>
+
+        <div class="ui grid">
+            <div class="four wide column">
+                <form  method="POST"  action=""> 
+                    <input class="ui button" type="submit" name="reset_db" value="Reset database">
+                </form>
+            </div>
+            <div class="four wide column">
+                <form  method="POST"  action=""> 
+                    <input class="ui button" type="submit" name="update_db" value="Update database">
+                </form></div>
+            <div class="four wide column">
+                <form  method="POST"  action=""> 
+                    <input class="ui button" type="submit" name="delete_models" value="Delete model data">
+                </form></div>
+        </div>
     </div>
 </body>
 
