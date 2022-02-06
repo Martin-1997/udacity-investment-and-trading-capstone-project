@@ -98,7 +98,7 @@ def prediction():
 
 @app.route("/config")
 def config():
-    return "Config page"
+    return render_template('config.html')
 
 
 @app.route("/about")
