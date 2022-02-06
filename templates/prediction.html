@@ -7,7 +7,10 @@
         </div>
         
         <div class="ui segment">
-            <p>{{ df_forecast_new }}</p>
+            {% for prediction in predictions.tolist() %}
+            <p>{{ prediction }}</p>
+            {% endfor %}
+            
         </div>
     </div>
 </body>

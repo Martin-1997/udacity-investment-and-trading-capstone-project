@@ -1,6 +1,6 @@
 # Custom ignore
 # vs code settings
-.vscode
+.vscode/
 
 # data directory
 data/

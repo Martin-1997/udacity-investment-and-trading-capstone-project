@@ -3,3 +3,5 @@ jinja2
 flask_wtf
 wtforms
 flask-datepicker
+tensorflow
+keras

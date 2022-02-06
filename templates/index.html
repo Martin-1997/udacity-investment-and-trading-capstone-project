@@ -15,7 +15,7 @@
         
         <div class="ui segment">
             <form action="/model" method='POST' name="createModelForm">
-                <label for="model_name">Specify a name for the model: </label>
+                <label for="model_name">Specify a name for the model (WARNING: If you choose the name of an already existing model, this model will be overwritten): </label>
                 <br>
                 <input type="text" name="model_name" id="model_name" value="Test-model"></input>
                 <br>
@@ -33,6 +33,9 @@
                  </select>
                  <br>
 
+                 <!-- Required to allow the user to select the ticker to predict at the beginning. This is not required at this step, because data for all the tickers
+                 needs to be predicted anyway to further predict forward into the future -->
+                 
                  <!-- <label for="model_target"> Select the ticker to predict with the model: </label>
                  <select name = "model_target" id="model_target" class="ui search fluid dropdown">
                  </select>
@@ -62,21 +65,20 @@
                     </div>
                   </div>
                   <br>
-
                 <input type="submit">
             </form>
         </div>
-        
-
     </div>
     <script>
+        // Initializes the Semantic-UI design for the dropdowns
         $('.ui.dropdown').dropdown();
 
+        // Initializes and configures the datepickers
         var today = new Date();
         $('#rangestart').calendar({
             type: 'date',
             startMode: 'year',
-            initialDate: new Date('2018-12-24'),
+            initialDate: new Date('2022-01-31'),
             minDate : new Date('2000-01-01'),
             endCalendar: $('#rangeend'),
             maxDate: today,
@@ -90,6 +92,9 @@
             maxDate: today,
             selectAdjacentDays: true,
         });
+
+        // //Required to allow the user to select the ticker to predict at the beginning. This is not required at this step, because data for all the tickers
+        // // needs to be predicted anyway to further predict forward into the future
 
         // let model_tickers = document.getElementById("model_tickers")
         // let model_target = document.getElementById("model_target")

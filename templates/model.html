@@ -10,15 +10,30 @@
             <h4>Start Date is: {{startdate}}</h4>
             <h4>End Date is: {{enddate}}</h4>
             <h4>Tickers are: {{model_tickers}}</h4>
-            <h4>Ticker to predict is: {{ model_target }}</h4>
+            <!-- <h4>Ticker to predict is: {{ model_target }}</h4> -->
         </div>
         <div class="ui segment">
             <form action="/prediction" method='POST' name="prediction_request">
+
+                <label for="target_ticker">Select the tickers to predict with the model:</label>
+                <select name = "target_ticker" id="target_ticker" class="ui search fluid dropdown" multiple="" onchange="update_model_target">
+                    {% for ticker in model_tickers %}
+                    {% if model_tickers.index(ticker) == 0: %}
+                    <option value = "{{ ticker }}" selected>{{ ticker }}</option>
+                    {% else: %}
+                    <option value = "{{ ticker }}">{{ ticker }}</option>
+                    {% endif %}
+                    {% endfor %}
+                 </select>
+
                 <label for="num_days">Select a number of days to predict:</label>
                 <input type="number" id="num_days" name="num_days" min="1" max="10">
                 <input type="submit">
             </form>
         </div>
     </div>
+    <script>
+        $('.ui.dropdown').dropdown();
+    </script>
 </body>
 {% endblock %}
