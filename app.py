@@ -37,10 +37,21 @@ def index(path):
     tickers = get_ticker_strings(engine)
     return render_template('index.html', tickers=tickers)
 
+@app.route("/select_model")
+def select_model():
+    return render_template("select_model.html")
 
 @app.route('/model', methods=['GET', 'POST'])
 def model():
-    if request.method == "POST":
+    # Check if the page is opened with a POST request (new data is entered) or if the required values are already set
+    if request.method == "POST" or (
+            (request.form.getlist('model_name') is not None) 
+            and (request.form.getlist('model_tickers') is not None) 
+            # and (request.form['startdate'] is not None)
+            # and (request.form['enddate'] is not None) 
+            and ('startdate'  in request.form)
+            and ('enddate' in request.form) 
+            ):
         # Assign the data from the form to the session to make it accessible when needed
         session['modelname'] = request.form.getlist('model_name')[0]
         session['model_tickers'] = request.form.getlist('model_tickers')
@@ -71,13 +82,26 @@ def model():
 
         return render_template('model.html', model_tickers=session['model_tickers'], model_path=session['model_path'], startdate=request.form['startdate'], enddate=request.form['enddate'])
     else:
-        # Check if values are set
-        return "only POST is supported"
+        # If values are not available
+        return render_template('model_missing_values.html')
+        
 
 
 @app.route("/prediction", methods=['GET', 'POST'])
 def prediction():
-    if request.method == "POST":
+    if request.method == "POST" or (
+            # (session['modelname'] is not None) and (session['scaler_path'] is not None) 
+            # and (session['last_data_path'] is not None)  and (session['data_columns'] is not None) 
+            # and session['modelname'] is not None and (session['model_tickers'] is not None)
+            # and (session['startdate'] is not None)  and (session['enddate'] is not None)
+            ('modelname' in session) and ('scaler_path' in session) 
+            and ('last_data_path' in session)  and ('data_columns' in session) 
+            and ('modelname' in session) and ('model_tickers' in session)
+            and ('startdate' in session)  and ('enddate' in session)
+            and (len(request.form.getlist('num_days')) > 0) 
+            and (len(request.form.getlist('target_ticker')) > 0)
+            ):
+        print(f"session['num_days']: {session['num_days']}")
         session['num_days'] = int(request.form.getlist('num_days')[0])
         session['target_ticker'] = request.form.getlist('target_ticker')[0]
         ticker_id = load_ticker_by_ticker(
@@ -92,8 +116,8 @@ def prediction():
         result_col_name = "adj_close-" + str(ticker_id)
         return render_template('prediction.html', predictions=df_forecast[result_col_name])
     else:
-        # Check if values are set
-        return "only POST is supported"
+        # If values are not available
+        return render_template('prediction_missing_values.html')
 
 def empty_data_dirs():
     """
@@ -130,7 +154,7 @@ def config():
         else:
             return render_template('config.html', information = "error")
     elif request.method == 'GET':
-        return render_template('config.html', information = "Test")
+        return render_template('config.html', information = "")
         
 
 
