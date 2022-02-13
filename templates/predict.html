@@ -2,7 +2,11 @@
 {% block content %}
     <div class="ui container">
         <div class="ui segment">
-            <h1>The model was successfully trained</h1>
+            {% if loaded: %}
+                <h1>The model was successfully loaded</h1>
+            {% else: %}
+                <h1>The model was successfully trained</h1>
+            {% endif %}
         </div>
 
         <div class="ui segment">
@@ -12,7 +16,7 @@
             <!-- <h4>Ticker to predict is: {{ model_target }}</h4> -->
         </div>
         <div class="ui segment">
-            <form action="/prediction" method='POST' name="prediction_request">
+            <form action="/results" method='POST' name="prediction_request">
 
                 <label for="target_ticker">Select the tickers to predict with the model:</label>
                 <select name = "target_ticker" id="target_ticker" class="ui search fluid dropdown" multiple="" onchange="update_model_target">
