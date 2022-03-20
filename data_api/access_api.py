@@ -9,7 +9,10 @@ def get_nasdaq_tickers():
     """
     Returns a list of all NASDAQ tickers
     """
-    return pdr.get_nasdaq_symbols()
+    data = pdr.get_nasdaq_symbols()
+    tickers = data["NASDAQ Symbol"].tolist()
+    asset_names = data["Security Name"].tolist()
+    return tickers, asset_names
 
 
 def get_ticker_actions(ticker, start_date, end_date=dt.today):
@@ -153,6 +156,3 @@ def get_stock_data_dict(ticker_symbols, start_date, end_date=dt.today(), date_in
                 f"WARN: {df.isnull().sum().sum() } data points are missing for ticker symbol {ticker}")
         data[ticker] = df
     return data
-
-
-

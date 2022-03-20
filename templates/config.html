@@ -1,29 +1,48 @@
 {% extends 'base.html' %}
 {% block content %}
 
-    <div class="ui container segment">
-        <h1>Application config</h1>
-        <p>This page allows you to perform various settings for the application</p>
+<div class="ui container segment">
+    <h1>Application config</h1>
+    <p>This page allows you to perform various settings for the application</p>
 
-        <p class="ui segment" id="information">{{ information }}</p>
+    {% if notification_message != None: %}
 
-        <div class="ui grid">
-            <div class="four wide column">
-                <form  method="POST"  action=""> 
-                    <input class="ui button" type="submit" name="reset_db" value="Reset database">
-                </form>
-            </div>
-            <div class="four wide column">
-                <form  method="POST"  action=""> 
-                    <input class="ui button" type="submit" name="update_db" value="Update database">
-                </form></div>
-            <div class="four wide column">
-                <form  method="POST"  action=""> 
-                    <input class="ui button" type="submit" name="delete_models" value="Delete model data">
-                </form></div>
-        </div>
+    <div class="ui message">
+        <i class="close icon"></i>
+        <p class="ui segment" id="notification_message">{{ notification_message }}</p>
     </div>
 
+    {% endif %}
+
+    <div class="ui grid">
+        <div class="four wide column">
+            <form method="POST" action="">
+                <input class="ui button" type="submit" name="reset_db" value="Reset database">
+            </form>
+        </div>
+        <div class="four wide column">
+            <form method="POST" action="">
+                <input class="ui button" type="submit" name="update_db" value="Update database">
+            </form>
+        </div>
+        <div class="four wide column">
+            <form method="POST" action="">
+                <input class="ui button" type="submit" name="delete_models" value="Delete model data">
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Controls the message box
+    $('.message .close')
+        .on('click', function () {
+            $(this)
+                .closest('.message')
+                .transition('fade')
+                ;
+        })
+        ;
+</script>
 
 {% endblock %}
-    

@@ -1,0 +1,170 @@
+{% extends 'base.html'%}
+{% block content %}
+    <div class="ui container">
+        <h1>Create a model</h1>
+
+        {% if notification_message != None: %}
+          <div class="ui segment">
+              <p>{{ notification_message }}</p>
+          </div>
+        {% endif %}
+
+        {% if not created: %}
+
+        <div class="ui segment" id="not-created">
+            <form action="" method='POST' name="createModelForm">
+                <label for="model_name">Specify a name for the model (WARNING: If you choose the name of an already existing model, this model will be overwritten): </label>
+                <br>
+                <input type="text" name="model_name" id="model_name" value="Test-model" required></input>
+                <br>
+                <br>
+
+                <label for="model_tickers">Select the tickers to build up the model: </label>
+                <select name = "model_tickers" id="model_tickers" class="ui search fluid dropdown" multiple="" onchange="update_model_target">
+                    {% for ticker in tickers %}
+                    {% if tickers.index(ticker) == 0: %}
+                    <option value = "{{ ticker }}" selected>{{ ticker }}</option>
+                    {% else: %}
+                    <option value = "{{ ticker }}">{{ ticker }}</option>
+                    {% endif %}
+                    {% endfor %}
+                 </select>
+                 <br>
+
+                 <!-- Required to allow the user to select the ticker to predict at the beginning. This is not required at this step, because data for all the tickers
+                 needs to be predicted anyway to further predict forward into the future -->
+                 
+                 <!-- <label for="model_target"> Select the ticker to predict with the model: </label>
+                 <select name = "model_target" id="model_target" class="ui search fluid dropdown">
+                 </select>
+                 <br> -->
+                 
+                 <label for="date_pickers"> Select the time range to train the model on: </label>
+                 <br>
+                 <br>
+                 <div class="two fields" id="date_pickers">
+                    <div class="field">
+                      <label>Start date</label>
+                      <div class="ui calendar" id="rangestart">
+                        <div class="ui input left icon">
+                          <i class="calendar icon"></i>
+                          <input name="start_date" type="text" placeholder="Start">
+                        </div>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label>End date</label>
+                      <div class="ui calendar" id="rangeend">
+                        <div class="ui input left icon">
+                          <i class="calendar icon"></i>
+                          <input name="end_date" type="text" placeholder="End">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <br>
+                <input type="submit">
+            </form>
+        </div>
+
+        {% else: %}
+
+
+        <div class="ui segment" id="created">
+          <p> Model {{ model_name }} has been created</p>
+        </div>
+
+        <div class="ui segment">
+          <form action="/predict" method='POST' name="predict">
+            <input type="submit" value="Predict" >
+        </form>
+        </div>
+
+        {% endif %}
+
+    </div>
+    <script>
+        // Initializes the Semantic-UI design for the dropdowns
+        $('.ui.dropdown').dropdown();
+
+        // Initializes and configures the datepickers
+        var today = new Date();
+        $('#rangestart').calendar({
+            type: 'date',
+            startMode: 'year',
+            initialDate: new Date('2021-10-31'),
+            minDate : new Date('2000-01-01'),
+            endCalendar: $('#rangeend'),
+            maxDate: today,
+            selectAdjacentDays: true,
+        });
+        $('#rangeend').calendar({
+            type: 'date',
+            startMode: 'year',
+            initialDate: new Date(),
+            minDate : new Date('2000-01-01'),startCalendar: $('#rangestart'),
+            maxDate: today,
+            selectAdjacentDays: true,
+        });
+
+        // //Required to allow the user to select the ticker to predict at the beginning. This is not required at this step, because data for all the tickers
+        // // needs to be predicted anyway to further predict forward into the future
+
+        // let model_tickers = document.getElementById("model_tickers")
+        // let model_target = document.getElementById("model_target")
+        
+        // function getSelectValues(select) {
+        //     var result = [];
+        //     var options = select && select.options;
+        //     var opt;
+
+        //     for (var i=0, iLen=options.length; i<iLen; i++) {
+        //         opt = options[i];
+
+        //         if (opt.selected) {
+        //         result.push(opt.value || opt.text);
+        //         }
+        //     }
+        //     return result;
+        // }
+
+        // function update_dropdowns() {
+        //     tickers = getSelectValues(model_tickers)
+
+        //     let optionHTML = "";
+        //     // Distinguish the first iteration from the others, to correctly preselect the first item
+        //     var first = true;
+        //     for (let ticker of tickers){
+        //         if (first){
+        //             optionHTML += "<option selected value='" + ticker + "'>" + ticker + '</option>';
+        //             first = false;
+        //         } else {
+        //             optionHTML += "<option value='" + ticker + "'>" + ticker + '</option>';
+        //         }    
+        //     }
+        //     model_target.innerHTML = optionHTML;
+        // }
+
+        // model_tickers.onchange = function() {
+        //     tickers = getSelectValues(model_tickers)
+
+        //     let optionHTML = "";
+        //     // Distinguish the first iteration from the others, to correctly preselect the first item
+        //     var first = true;
+        //     for (let ticker of tickers){
+        //         if (first){
+        //             optionHTML += "<option selected value='" + ticker + "'>" + ticker + '</option>';
+        //             first = false;
+        //         } else {
+        //             optionHTML += "<option value='" + ticker + "'>" + ticker + '</option>';
+        //         }    
+        //     }
+        //     model_target.innerHTML = optionHTML;
+        // }
+        // // initialize the default value for model_tickers
+        // model_tickers.onchange();
+    </script>
+{% endblock %}
+
+
+

@@ -9,8 +9,6 @@ from sklearn.preprocessing import StandardScaler
 from pandas.tseries.offsets import CustomBusinessDay
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
-from data_api.db import get_formated_data, load_ticker_by_ticker
-
 
 def print_performance(history):
     print("Model performance:")
@@ -56,57 +54,34 @@ def create_train_test_arrays(n_past, df):
     return trainX, trainY
 
 
-def load_train_data(engine, tickers, start_date, end_date):
-    """
-    Loads the required raw data from the database
-    """
-    # Get the ticker_ids for each ticker string value
-    ticker_ids = list()
-    for ticker in tickers:
-        ticker_obj = load_ticker_by_ticker(engine, ticker)
-        ticker_id = ticker_obj.Ticker.id
-        ticker_ids.append(ticker_id)
-
-    # Get the data from the API
-    # df = api.get_adj_close_df(tickers, start_date, end_date, date_index=False)
-    # Get the data from the database
-    df = get_formated_data(engine, ticker_ids)
-
-    # Extract the dates from the dataframe
-    dates = df["timestamp"]
-    df.drop(["timestamp"], axis=1, inplace=True)
-
-    # New dataframe with only training data
-    df_for_training = df.astype(float)
-    print(f"Data columns used to build model: {df.columns.values}")
-    return df_for_training
-
-
 def create_model(data,  n_past=60):
     """
-    Prepartes the data and creates and trains a model
+    Prepares the data and creates and trains a model
     """
+
+    assert(
+        data.shape[0] > n_past),  f"Training not possible. A minimum of {n_past} days is needed to train the model. Only {data.shape[0]} days have been seleted."
+
     # LSTM uses sigmoid and tanh that are sensitive to magnitude so values need to be normalized
     # normalize the dataset
     scaler = StandardScaler()
     scaler = scaler.fit(data)
     df_for_training_scaled = scaler.transform(data)
-    # print(f"Dataset successfully scaled. n_features of the scaler: {scaler.n_features_in_}")
+    print(
+        f"Dataset successfully scaled. n_features of the scaler: {scaler.n_features_in_}")
 
     # As required for LSTM networks, we require to reshape an input data into n_samples x timesteps x n_features.
     # In this example, the n_features is 5. We will make timesteps = 14 (past days data used for training).
     trainX, trainY = create_train_test_arrays(
         n_past=n_past, df=df_for_training_scaled)
 
-    # print(f"model input shape: {trainX.shape}")
-    # print(f"model output shape: {trainY.shape}")
     model = get_model(input_shape=trainX.shape,
                       output_shape=trainY.shape, print_summary=False)
 
     # fit the model
     history = model.fit(trainX, trainY, epochs=1,
                         batch_size=16, validation_split=0.1, verbose=1)
-    # print("Model training successfull")
+    print("Model training successfull")
 
     # print_performance(history)
 
@@ -154,7 +129,6 @@ def make_predictions(model, last_date_model, last_data, scaler, n_days, data_col
         scaled_prediction = np.append(scaled_prediction, forecast_dates[i])
         # Insert the prediction into the dataframe
         df.loc[i] = scaled_prediction
-        # print(f"Shape of three_dim_last_data before: {three_dim_last_data.shape}")
         # Insert the prediction as last row into our dataframe
         prediction = prediction.reshape(
             1, prediction.shape[0], prediction.shape[1])
@@ -163,7 +137,6 @@ def make_predictions(model, last_date_model, last_data, scaler, n_days, data_col
         # Drop the first row in the dataframe to again have the same amount of rows
         three_dim_last_data = three_dim_last_data[:,
                                                   1: three_dim_last_data.shape[1] + 1]
-        # print(f"Shape of three_dim_last_data after: {three_dim_last_data.shape}")
     return df
 
 

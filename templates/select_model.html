@@ -1,31 +1,86 @@
 {% extends 'base.html' %}
 {% block content %}
-    <div class="ui container">
-        <div class="ui segment">
-            <h1>Select a pre-trained model</h1>
-        </div>
-
-        <!-- <div class="ui segment">
-            <form action="/prediction" method='POST' name="prediction_request">
-
-                <label for="target_ticker">Select the tickers to predict with the model:</label>
-                <select name = "target_ticker" id="target_ticker" class="ui search fluid dropdown" multiple="" onchange="update_model_target">
-                    {% for ticker in model_tickers %}
-                    {% if model_tickers.index(ticker) == 0: %}
-                    <option value = "{{ ticker }}" selected>{{ ticker }}</option>
-                    {% else: %}
-                    <option value = "{{ ticker }}">{{ ticker }}</option>
-                    {% endif %}
-                    {% endfor %}
-                 </select>
-
-                <label for="num_days">Select a number of days to predict:</label>
-                <input type="number" id="num_days" name="num_days" min="1" max="10">
-                <input type="submit">
-            </form>
-        </div> -->
+<div class="ui container">
+    <div class="ui segment">
+        <h1>Select a pre-trained model</h1>
     </div>
-    <script>
-        $('.ui.dropdown').dropdown();
-    </script>
+
+    {% if notification_message != None: %}
+
+    <div class="ui message">
+        <i class="close icon"></i>
+        <p class="ui segment" id="notification_message">{{ notification_message }}</p>
+    </div>
+
+    {% endif %}
+
+    {% if not selected: %}
+    <div class="ui segment">
+        <form action="" method='POST' name="prediction_request">
+            <label for="select_model">Select the model you want to use:</label>
+            <select name="select_model" id="select_model" class="ui search fluid dropdown"
+                onchange="update_model_data_fields(this)">
+                {% for model_name in model_name_list %}
+                {% if model_name_list.index(model_name) == 0: %}
+                <option value="{{ model_name }}" selected>{{ model_name }}</option>
+                {% else: %}
+                <option value="{{ model_name }}">{{ model_name }}</option>
+                {% endif %}
+                {% endfor %}
+            </select>
+            <input type="submit" name="submit_button" value="Select">
+            <input type="submit" name="submit_button" value="Delete">
+        </form>
+    </div>
+    <div class="ui segment">
+        <h4>Start Date is</h4>
+        <div id="start_date"></div>
+        <h4>End Date is:</h4>
+        <div id="end_date"></div>
+        <h4>Tickers are:</h4>
+        <div id="tickers"></div>
+    </div>
+    {% else: %}
+    <div class="ui segment">
+        <p>{{ model.model_name }} has been selected!</p>
+    </div>
+    <div class="ui segment">
+        <h4>Start Date is</h4>
+        <div id="start_date">{{ model.start_date }}</div>
+        <h4>End Date is:</h4>
+        <div id="end_date">{{ model.end_date }}</div>
+        <h4>Tickers are:</h4>
+        <div id="tickers">{{ tickers }}</div>
+    </div>
+
+    <div class="ui segment">
+        <form action="/predict" method='POST' name="predict">
+            <input type="submit" value="Predict">
+        </form>
+    </div>
+    {% endif %}
+</div>
+<script>
+    $('.ui.dropdown').dropdown();
+
+    function update_model_data_fields(dropdown) {
+        var model_name = dropdown.options[dropdown.selectedIndex].text;
+        $.ajax({
+            url: "/get_model_params",
+            type: "get",
+            data: { "model_name": model_name },
+            success: function (response) {
+                $("#start_date").html('<p>' + response.start_date.toString() + '</p>');
+                $("#end_date").html('<p>' + response.end_date.toString() + '</p>');
+                $("#tickers").html('<p>' + response.tickers.toString() + '</p>');
+            },
+        });
+    };
+
+    $(document).ready(function () {
+        const element = document.querySelector('#select_model')
+        update_model_data_fields(element)
+    });
+    
+</script>
 {% endblock %}

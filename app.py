@@ -1,42 +1,79 @@
 # Import Python libraries
+from unicodedata import name
 import werkzeug
-import logging
-from flask import Flask, session, render_template, sessions, request, jsonify, Request
-from tensorflow.python.keras.utils.generic_utils import default
+from flask import Flask, session, render_template, sessions, request, jsonify, Request, url_for, redirect
 import numpy as np
 from datetime import datetime as dt
 import joblib
 import os
+from flask_socketio import SocketIO, emit
+# For accessing sqlalchemy exceptions
+import sqlalchemy
 
 
 # Import own libraries
-from data_api.db import initialize_db, return_engine, get_ticker_strings, load_ticker_by_ticker, update_price_data_sets
-from models.model_func import create_model, save_model, load_train_data, load_model, make_predictions
+from data_api.db import delete_model_by_name, return_engine, get_all_ticker_strings, get_ticker_by_ticker, get_all_models, get_model_by_name, get_new_nasdaq_tickers
+from data_api.db import get_model_by_id, model_name_exists, delete_all_models, load_formatted_train_data, create_ticker, delete_ticker_by_ticker
+from data_api.init_db import initialize_db, update_price_data_sets, update_ticker_price_data
+from models.model_func import save_model, load_model, make_predictions
+from helper_functions import empty_data_dirs, delete_model_files_not_in_db, delete_model_files
+import models
+import data_api
 
-
-# Get a connection to the database
-engine = return_engine()
 
 # Define the data paths
 current_dir = os.path.dirname(__file__)
+database_dir = os.path.join(current_dir, "data")
+db_filename = "database.db"
 model_dir = os.path.join(current_dir, "data/models")
 scaler_dir = os.path.join(current_dir, "data/scalers")
-last_data_dir = os.path.join(current_dir, "data/last_data")
-data_columns_dir = os.path.join(current_dir, "data/data_columns")
+
+# Create the required folders, if they are not available
+if not os.path.exists(database_dir):
+    os.makedirs(database_dir)
+if not os.path.exists(model_dir):
+    os.makedirs(model_dir)
+if not os.path.exists(scaler_dir):
+    os.makedirs(scaler_dir)
+
+if os.path.exists(os.path.join(database_dir, db_filename)):
+    # If the database already exits, get a connection to the database
+    engine = return_engine(database_dir, db_filename=db_filename)
+else:
+    # Otherwise, create a new database and initialize it with data
+    engine = initialize_db(database_dir,  db_filename=db_filename)
 
 
 # Setup Flask
 app = Flask(__name__)
 app.config['TESTING'] = True
 app.config['SECRET_KEY'] = '#$%^&*hf921th2023t348642tö02th23ß320'
+socketio = SocketIO(app)
 
 
-# Logging
-# Add "filename='record.log'" to log into a file
-logging.basicConfig(level=logging.INFO,
-                    format=f'%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
-app.logger.info('Info level log')
-app.logger.warning('Warning level log')
+# API to load model parameters (required for select_model page)
+@app.route("/get_model_params")
+def get_model_params():
+    try:
+        model_name = request.args.get('model_name')
+        model = get_model_by_name(engine, model_name)
+        tickers = []
+        for ticker_instance in model.tickers:
+            tickers.append(ticker_instance.ticker)
+
+        data = jsonify({"model_name":  model_name,
+                        "start_date": model.start_date,
+                        "end_date": model.end_date,
+                        "tickers": tickers,
+                        })
+        return data
+    except:
+        data = jsonify({"model_name":  "",
+                        "start_date": "",
+                        "end_date": "",
+                        "tickers": [""],
+                        })
+        return data
 
 
 # Error messages in JSON
@@ -48,126 +85,153 @@ def notfound(e):
 # Grab all non-specified paths per default
 @app.route("/", defaults={'path': ''})
 @app.route("/<path:path>")
+# Start Page
 def index(path):
     app.logger.info("Opened start page")
-    tickers = get_ticker_strings(engine)
-    return render_template('index.html', tickers=tickers)
+    return render_template("index.html")
 
 
-@app.route("/select_model")
+@app.route("/create_model", methods=['GET', 'POST'])
+def create_model():
+    tickers = get_all_ticker_strings(engine)
+    # Open the page the first time
+    if request.method == "GET":
+        return render_template('create_model.html', tickers=tickers, created=False)
+
+    # Submit the selected model data and create the model
+    if request.method == "POST":
+        # Specify the date format received by the POST request
+        date_format = "%B %d, %Y"
+
+        # Get the parameters from the POST request
+        model_name = request.form.getlist('model_name')[0]
+
+        if model_name_exists(engine, model_name):
+            return render_template('create_model.html', tickers=tickers, notification_message="The model name \"{model_name}\" already exists, please select a different one", model_name=model_name)
+
+        model_tickers = request.form.getlist('model_tickers')
+        start_date = dt.strptime(request.form['start_date'], date_format)
+        end_date = dt.strptime(request.form['end_date'], date_format)
+
+        # Convert the tickers into ticker_ids
+        model_tickers_ids = []
+        for ticker in model_tickers:
+            model_tickers_ids.append(
+                get_ticker_by_ticker(engine, ticker).Ticker.id)
+
+        # Load the training data
+        try:
+            train_data = load_formatted_train_data(
+                engine, model_tickers_ids, start_date, end_date)
+        except ValueError as value_error:
+            print(value_error)
+            print(f"The model could not be created: {value_error}")
+            return render_template('create_model.html', tickers=tickers, notification_message=f"The model {model_name} could not be created: {value_error}", model_name=model_name)
+
+        # If na values are used to train the model, all predictions will also be NA
+        # If data is missing here, the reason is usually that the company was not public/the index did not exist before a certain date
+        # Therefore we assume a hypothetical price of 0
+        train_data.fillna(value=0, inplace=True)
+
+        # Create a Keras ML model
+        try:
+            model, last_data, scaler, data_columns = models.model_func.create_model(
+                train_data)
+        except AssertionError as assertion_error:
+            error_message = f"The model {model_name} could not be created: {assertion_error}"
+            print(error_message)
+            return render_template('create_model.html', tickers=tickers, notification_message=error_message, model_name=model_name)
+
+        # Store the model to disk
+        model_path = save_model(model, model_name)
+
+        # Store the scaler to disk
+        scaler_path = f"./data/scalers/{model_name}"
+        joblib.dump(scaler, scaler_path)
+
+        try:
+            model_id = data_api.db.create_model(engine, model_name, start_date, end_date,
+                                                model_tickers_ids, data_columns, last_data, scaler_path, model_path)
+        except sqlalchemy.exc.InvalidRequestError as invalidRequestError:
+            error_message = f"An invalid request error occured: {invalidRequestError}"
+            print(error_message)
+            return render_template('create_model.html', tickers=tickers, notification_message=error_message, model_name=model_name)
+
+        # Store the model_id to the session
+        session["model_id"] = model_id
+        print(
+            f"Model \"{model_name}\" with id {model_id} was successfully created!")
+
+        return redirect(url_for('predict', model_tickers=tickers, start_date=start_date, end_date=end_date))
+        # return render_template('create_model.html', tickers=tickers, created=True, model_name = model_name)
+    else:
+        return "Error, only GET and POST requests are supported"
+
+
+@app.route("/select_model", methods=['GET', 'POST'])
 def select_model():
-    app.logger.info("Opened select model page")
-    print(model_dir)
-    for root, dirs, files in os.walk(model_dir):
-        for file in files:
-            print(file)
+    model_name_list = []
 
-    scaler_dir = os.path.join(current_dir, "data/scalers")
-    for root, dirs, files in os.walk(scaler_dir):
-        for file in files:
-            print(file)
+    models = get_all_models(engine)
 
-    last_data_dir = os.path.join(current_dir, "data/last_data")
-    for root, dirs, files in os.walk(last_data_dir):
-        for file in files:
-            print(file)
-            
-    return render_template("select_model.html")
+    for model in models:
+        model_name_list.append(model[0].model_name)
+
+    if request.method == "GET":
+        return render_template("select_model.html", model_name_list=model_name_list, selected=False, notification_message=None)
+
+    if request.method == "POST":
+        if request.form['submit_button'] == 'Delete':
+            model_name = request.form.getlist('select_model')[0]
+            model_name_list.remove(model_name)
+            delete_model_by_name(engine, model_name)
+            delete_model_files(model_name, model_dir, scaler_dir)
+            return render_template("select_model.html", model_name_list=model_name_list, selected=False, notification_message=f"The model {model_name} has been deleted")
+
+        elif request.form['submit_button'] == 'Select':
+            model_name = request.form.getlist('select_model')[0]
+            model = get_model_by_name(engine, model_name)
+            tickers = []
+            for ticker in model.tickers:
+                tickers.append(ticker.ticker)
+            session["model_id"] = model.id
+            return redirect(url_for('predict', model_tickers=tickers, start_date=model.start_date, end_date=model.end_date))
+        else:
+            return "Error, there is no action specified for this submit button"
+    else:
+        return "Error, only GET and POST requests are supported"
 
 
 @app.route('/predict', methods=['GET', 'POST'])
 def predict():
-    # Check if the page is opened with a POST request (new data is entered) and if the required values are already set
-    parameters_set = (
-        ('modelname' in session) 
-        and ('model_tickers' in session)
-        and ('startdate' in session) 
-        and ('enddate' in session) 
-        )
-    POST_method = (request.method == "POST")
-    if POST_method or parameters_set:
-        if POST_method:
-            # Assign the data from the form to the session to make it accessible when needed
-            session['modelname'] = request.form.getlist('model_name')[0]
-            session['model_tickers'] = request.form.getlist('model_tickers')
-            session['startdate'] = request.form['startdate']
-            session['enddate'] = request.form['enddate']
-
-        # Load model, if model exists
-        if model_exists(session['modelname']):
-            session['model_path'] = os.path.join(model_dir, f"{session['modelname']}.5")
-            session['scaler_path'] = os.path.join(scaler_dir, f"{session['modelname']}")
-            session["last_data_path"] = os.path.join(last_data_dir, f"{session['modelname']}.npy")
-            session["data_columns"] = []
-            with open(os.path.join(data_columns_dir, session['modelname']), "r") as f:
-                for line in f:
-                    session["data_columns"].append(str(line.strip()))
-            loaded = True
-        else:
-            train_data = load_train_data(
-                engine, session['model_tickers'], session['startdate'], session['enddate'])
-            # If na values are used to train the model, all predictions will also be NA
-            train_data.fillna(value=0, inplace=True)
-            model, last_data, scaler, data_columns = create_model(train_data)
-
-            session["data_columns"] = data_columns.tolist()
-            # Store the data columns to a file
-            with open(os.path.join(data_columns_dir, session['modelname']), "w") as f:
-                for column in session["data_columns"]:
-                    f.write(str(column) +"\n")
-
-            # Create a model name
-            app.logger.info(f"Model {session['modelname']} successfully created")
-            # Store the model
-            session['model_path'] = save_model(model, session["modelname"])
-
-            #dirname = os.path.dirname(__file__)
-            #print(f"dirname: {dirname}")
-            # filename = dirname + f"/data/scaler/test"  # {session['modelname']}.joblib"
-            #dump(scaler, f"./data/scalers/{'scaler_s'}")
-            session['scaler_path'] = f"./data/scalers/{session['modelname']}"
-            joblib.dump(scaler, session['scaler_path'])
-
-            session["last_data_path"] = f"./data/last_data/{session['modelname']}"
-            np.save(session["last_data_path"], last_data)
-            loaded = False
-        return render_template('predict.html', model_tickers=session['model_tickers'], model_path=session['model_path'], startdate = session['startdate'], enddate = session['enddate'],loaded = loaded)
-    # No POST method (with parameters) or no parameters set   
+    if session.get("model_id") != None:
+        model = get_model_by_id(engine, session["model_id"])
+        tickers = []
+        for ticker in model.tickers:
+            tickers.append(ticker.ticker)
+        return render_template('predict.html', model_tickers=tickers, start_date=model.start_date, end_date=model.end_date)
+    # No POST method (with parameters) or no parameters set
     else:
         return render_template('prediction_missing_values.html')
-        
+
 
 @app.route("/results", methods=['GET', 'POST'])
 def results():
-    # Check if the page was called by a POST method and if the parameters have been already set
-    parameter_set = (
-            ('modelname' in session) 
-            and ('scaler_path' in session) 
-            and ('last_data_path' in session)  
-            and ('data_columns' in session) 
-            and ('modelname' in session) 
-            and ('model_tickers' in session)
-            and ('startdate' in session)  
-            and ('enddate' in session)
-            and ('num_days' in session) #(len(request.form.getlist('num_days')) > 0) 
-            and ('target_ticker' in session)    # (len(request.form.getlist('target_ticker')) > 0)
-            )
-    POST_method = (request.method == "POST")
+    if request.method == "POST":
+        session['num_days'] = int(request.form.getlist('num_days')[0])
+        session['target_tickers'] = request.form.getlist('target_tickers')
 
-    if POST_method or parameter_set:
-        # If POST method: Set the parameters
-        if POST_method:
-            session['num_days'] = int(request.form.getlist('num_days')[0])
-            session['target_ticker'] = request.form.getlist('target_ticker')[0]
+        ticker_id = get_ticker_by_ticker(
+            engine, session['target_tickers'][0]).Ticker.id
 
-        ticker_id = load_ticker_by_ticker(
-            engine, session['target_ticker']).Ticker.id
-        model = load_model(session["modelname"])
-        scaler = joblib.load(session['scaler_path'])
-        last_data = np.load(session["last_data_path"])
+        model_db = get_model_by_id(engine, session["model_id"])
+        scaler = joblib.load(model_db.scaler_path)
+
+        # Load the model object from the filesystem
+        model = load_model(model_db.model_name)
 
         df_forecast = make_predictions(
-            model, session["enddate"], last_data, scaler, session['num_days'], session["data_columns"])
+            model, model_db.end_date, model_db.last_data, scaler, session['num_days'], model_db.data_columns)
         # only forward the forcast data for the correct ticker
         result_col_name = "adj_close-" + str(ticker_id)
         return render_template('results.html', predictions=df_forecast[result_col_name])
@@ -176,51 +240,77 @@ def results():
         return render_template('results_missing_values.html')
 
 
-def model_exists(modelname):
-    """
-    Checks if a model (and the additional required data) with a given name already exits
-    """
-    model_flag = os.path.isfile(os.path.join(model_dir, f"{modelname}.h5"))
-    scaler = os.path.isfile(os.path.join(scaler_dir, f"{modelname}"))
-    last_data = os.path.isfile(os.path.join(last_data_dir, f"{modelname}.npy"))
-    data_columns = os.path.isfile(os.path.join(data_columns_dir, f"{modelname}"))
+@app.route("/edit_tickers", methods=['GET', 'POST'])
+def edit_tickers():
+    # Download the available tickers
+    all_tickers, asset_names = get_new_nasdaq_tickers(engine)
+    # If the page is called using a GET method, show the page without any action except showing all available and existing tickers
+    if request.method == "GET":
+        existing_tickers = get_all_ticker_strings(engine)
+        return render_template('edit_tickers.html', all_tickers=all_tickers, asset_names=asset_names, existing_tickers=existing_tickers,  notification_message=None)
+    elif request.method == "POST":
+        if "add_tickers" in request.form:
+            assets = request.form.getlist('asset_names')
+            successes = list()
+            failures = list()
+            for asset in assets:
+                ticker_index = asset_names.index(asset)
+                ticker_id = create_ticker(
+                    engine, ticker=all_tickers[ticker_index], name=asset_names[ticker_index])
+                result = update_ticker_price_data(engine, ticker_id)
+                if result:
+                    successes.append(asset_names[ticker_index])
+                else:
+                    failures.append(asset_names[ticker_index])
+                # Update the ticker list so that the newly added tickers are included
+                existing_tickers = get_all_ticker_strings(engine)
 
-    return (model_flag and scaler and last_data and data_columns)
+            notification_message = f"The following tickers have been added: {successes} \n \n The following tickers have not been added due to an error: {failures}"
 
+            return render_template('edit_tickers.html', all_tickers=all_tickers, asset_names=asset_names, existing_tickers=existing_tickers,  notification_message=notification_message, added=True)
 
-def empty_data_dirs():
-    """
-    This method delets all files in the last_data, models and scalers-folders
-    """
-    for root, dirs, files in os.walk(model_dir):
-        for file in files:
-            os.remove(os.path.join(root, file))
-    for root, dirs, files in os.walk(scaler_dir):
-        for file in files:
-            os.remove(os.path.join(root, file))
-    for root, dirs, files in os.walk(last_data_dir):
-        for file in files:
-            os.remove(os.path.join(root, file))
-    return True
-        
+        elif "delete_tickers" in request.form:
+            tickers = request.form.getlist('existing_tickers')
+            # Delete the tickers and the linked models
+            for ticker in tickers:
+                delete_ticker_by_ticker(engine, ticker)
+            # Delete the model files
+            delete_model_files_not_in_db(engine, model_dir, scaler_dir)
+            # Update the ticker list so that the newly deleted tickers are not included anymore
+            existing_tickers = get_all_ticker_strings(engine)
+
+            notification_message = f"The following tickers have been deleted: {tickers}"
+            return render_template('edit_tickers.html', all_tickers=all_tickers, asset_names=asset_names, existing_tickers=existing_tickers,  notification_message=notification_message, added=False)
+        else:
+            return "Error"
+    else:
+        return "Error, only GET and POST requests are supported"
+
 
 @app.route("/config", methods=['GET', 'POST'])
 def config():
-    if request.method == 'POST':
-        if "reset_db" in request.form:
-            initialize_db()
-            return render_template('config.html', information = "Database successfully reset")
-        elif "update_db" in request.form:
-            update_price_data_sets(engine)
-            return render_template('config.html', information = "Database successfully updated")
-        elif "delete_models" in request.form:
-            empty_data_dirs()
-            return render_template('config.html', information = f"All models have been deleted")
-        else:
-            return render_template('config.html', information = "error")
-    elif request.method == 'GET':
-        return render_template('config.html', information = "")
-        
+    try:
+        if request.method == 'POST':
+            if "reset_db" in request.form:
+                empty_data_dirs(model_dir, scaler_dir)
+                initialize_db(database_dir)
+                return render_template('config.html', notification_message="Database reseted successfully")
+            elif "update_db" in request.form:
+                update_price_data_sets(engine)
+                return render_template('config.html', notification_message="Database updated successfully")
+            elif "delete_models" in request.form:
+                empty_data_dirs(model_dir, scaler_dir)
+                delete_all_models(engine)
+                session["model_id"] = None
+                return render_template('config.html', notification_message="All models have been deleted")
+            else:
+                return render_template('config.html', notification_message="Error")
+        elif request.method == 'GET':
+            return render_template('config.html',  notification_message=None)
+    except sqlalchemy.exc.IntegrityError as err:
+        print(err)
+        return render_template('config.html',  notification_message=f"A database Integrity error occured: \n \n {err}")
+
 
 @app.route("/about")
 def about():
@@ -229,8 +319,5 @@ def about():
 
 if __name__ == '__main___':
     # threaded = True -> Automatically create a new thread for every session/user
-    app.run(port=5000, debug=False, threaded=True)
-
-# conda activate uc-stock-price-pred
-# export FLASK_ENV=development
-# flask run
+    # app.run(port=5000, debug=False, threaded=True)
+    socketio.run(port=5000, debug=False, threaded=True)

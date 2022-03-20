@@ -2,60 +2,68 @@
 <html lang='en'>
 
 <head>
-    <title>Udacity Stock Price Prediction</title>
+  <title>Udacity Stock Price Prediction</title>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
-    <!-- Import Fomantic UI for calendar selector: https://fomantic-ui.com/introduction/getting-started.html -->
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
+  <!-- Import Fomantic UI for calendar selector: https://fomantic-ui.com/introduction/getting-started.html -->
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.js"></script>
 </head>
 
-    <body>
-        <button class="ui button primary">
-            Show Menu
-        </button>
+<body>
+  <button class="ui button primary">
+    Show Menu
+  </button>
 
-        <div id class="ui left demo vertical inverted sidebar labeled icon menu"> 
-            <!-- ui sidebar inverted vertical menu -->
-            <br>
-            <br>
-              <a class="item" href="/">
-                <i class="plus icon"></i>
-                Create a model
-              </a>
-              <a class="item" href="select_model">
-                <i class="list icon"></i>
-                Select a model
-              </a>
-              <a class="item" href="predict">
-                <i class="magic icon"></i>
-                Predict
-              </a>
-              <a class="item" href="results">
-                <i class="bullseye icon"></i>
-                Results
-              </a>
-              <a class="item" href="config">
-                <i class="cog icon"></i>
-                Config
-              </a>
-              <a class="item" href="about">
-                <i class="info icon"></i>
-                About
-              </a>
-        </div>
-        <div class="pusher">
-            {% block content %}
-            {% endblock %}
-        </div>
-    
-        <script>
-            $('button').click(function () {
-            $('.ui.sidebar').sidebar('toggle');
-        })
-        </script>
-    </body>
-    
+  <div id class="ui left demo vertical inverted sidebar labeled icon menu">
+    <!-- ui sidebar inverted vertical menu -->
+    <br>
+    <br>
+    <a class="item" href="/">
+      <i class="home icon"></i>
+      Start page
+    </a>
+    <a class="item" href="create_model">
+      <i class="plus icon"></i>
+      Create a model
+    </a>
+    <a class="item" href="select_model">
+      <i class="list icon"></i>
+      Select a model
+    </a>
+    <a class="item" href="predict">
+      <i class="magic icon"></i>
+      Predict
+    </a>
+    <a class="item" href="results">
+      <i class="bullseye icon"></i>
+      Results
+    </a>
+    <a class="item" href="edit_tickers">
+      <i class="industry icon"></i>
+      Edit tickers
+    </a>
+    <a class="item" href="config">
+      <i class="cog icon"></i>
+      Config
+    </a>
+    <a class="item" href="about">
+      <i class="info icon"></i>
+      About
+    </a>
+  </div>
+  <div class="pusher">
+    {% block content %}
+    {% endblock %}
+  </div>
+
+  <script>
+    $('button').click(function () {
+      $('.ui.sidebar').sidebar('toggle');
+    })
+  </script>
+</body>
+
 </html>

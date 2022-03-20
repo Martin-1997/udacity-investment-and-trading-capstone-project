@@ -1,7 +1,13 @@
 flask
+Flask-SocketIO 
 jinja2
 flask_wtf
 wtforms
 flask-datepicker
 tensorflow
 keras
+joblib
+pandas_datareader
+sqlalchemy
+matplotlib
+sklearn

@@ -10,3 +10,8 @@ Create a model by the following steps:
 - Choose a time range (indicated by start and end date) for specifing the training data
 - Choose a list of tickers from the build-in tickers
 - Give the model a name
+
+# Commands to test using Flask
+conda activate stock_price_pred
+export FLASK_ENV=development
+flask run

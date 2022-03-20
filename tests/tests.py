@@ -1,6 +1,7 @@
 import unittest
 from app import app
 
+
 class BasicTests(unittest.TestCase):
     def setUp(self):
         app.config["TESTING"] = True
@@ -11,8 +12,9 @@ class BasicTests(unittest.TestCase):
         pass
 
     def test_root(self):
-        response = self.app.get("/test", follow_redirects = True)
+        response = self.app.get("/test", follow_redirects=True)
         self.assertEqual(response.status_code, 200)
+
 
 if __name__ == "__main__":
     unittest.main()

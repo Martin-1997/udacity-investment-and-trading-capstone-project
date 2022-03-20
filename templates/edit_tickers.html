@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="ui relaxed grid">
+
+    <!-- Row for menu buttons -->
+    <div class="row">
+        <div class="two wide column">
+        </div>
+        <div class="twelve wide column">
+            <div class="ui two item menu">
+                <a class="item" id="add_tickers_button">Add Tickers</a>
+                <a class="item" id="delete_tickers_button">Delete Tickers</a>
+            </div>
+        </div>
+    </div>
+
+    {% if notification_message != None: %}
+
+    <!-- Row for notification messages -->
+    <div class="row">
+        <div class="two wide column">
+        </div>
+        <div class="two wide column">
+            <p>{{ notification_message }}</p>
+        </div>
+    </div>
+
+    {% endif %}
+
+    <!-- Row for displaying the two forms  -->
+    <div class="row">
+        <div class="two wide column">
+        </div>
+        <div class="six wide column">
+            <div id="add_column">
+                <h1> Add tickers </h1>
+                <div class="ui segment">
+                    <form action="" method='POST' name="addTickersForm">
+                        <label for="asset_names">Select the tickers to import</label>
+                        <select name="asset_names" id="asset_names" class="ui search fluid dropdown" multiple="">
+                            {% for ticker in asset_names %}
+                            <option value="{{ ticker }}">{{ ticker }}</option>
+                            {% endfor %}
+                        </select>
+                        <br>
+                        <input class="ui button" type="submit" name="add_tickers" value="Add selected tickers">
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="six wide column">
+            <div id="delete_column">
+                <h1> Delete tickers </h1>
+                <div class="ui segment">
+                    <form action="" method='POST' name="deleteTickersForm">
+                        <label for="existing_tickers">Select the tickers to delete</label>
+                        <select name="existing_tickers" id="existing_tickers" class="ui search fluid dropdown"
+                            multiple="">
+                            {% for ticker in existing_tickers %}
+                            {% if existing_tickers.index(ticker) == 0: %}
+                            <option value="{{ ticker }}" selected>{{ ticker }}</option>
+                            {% else: %}
+                            <option value="{{ ticker }}">{{ ticker }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                        <br>
+                        <input class="ui button" type="submit" name="delete_tickers" value="Delete selected tickers">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- {% if added: %}
+
+<script>
+    // Only show the add tickers column initially
+    $("#delete_column").hide()
+</script>
+
+{% else: %}
+
+<script>
+    // Only show the add tickers column initially
+    $("#add_column").hide()
+</script>
+
+{% endif %} -->
+
+<script>
+    // Initializes the Semantic-UI design for the dropdowns
+    $('.ui.dropdown').dropdown();
+
+    $("#delete_column").hide()
+
+    $('#add_tickers_button').click(function () {
+        $("#delete_column").hide()
+        $("#add_column").show()
+    });
+
+    $('#delete_tickers_button').click(function () {
+        $("#add_column").hide()
+        $("#delete_column").show()
+    });
+
+</script>
+
+
+{% endblock %}
