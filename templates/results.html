@@ -6,10 +6,7 @@
     </div>
 
     <div class="ui segment">
-        {% for prediction in predictions.tolist() %}
-        <p>{{ prediction }}</p>
-        {% endfor %}
-
+        {{predictions | safe}}
     </div>
 </div>
 {% endblock %}

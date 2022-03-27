@@ -25,13 +25,119 @@
                 {% endfor %}
             </select>
 
+            <!-- <br>
             <label for="num_days">Select a number of days to predict:</label>
             <input type="number" id="num_days" name="num_days" min="1" required>
+            <br> -->
+
+            <br>
+            <label for="date_pickers"> Select the dates for which you want to predict the stock price: </label>
+            <br>
+            <br>
+            <input type="button" id="addCalendarButton" value="Add date">
+            <br>
+            <br>
+            <div class="two fields" id="date_pickers">
+
+                <div class="ui cards" id="cards">
+
+                    <div class="card" id="card_1">
+                        <div class="content">
+                            <label>Start date</label>
+                            <div class="ui calendar" id="rangestart_1">
+                                <div class="ui input left icon">
+                                    <i class="calendar icon"></i>
+                                    <input name="dates[]" type="text">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="extra content" id='remove_1'>
+                            <span class='remove'>
+                                <div class="ui basic red button">Remove</div>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <br>
+            <br>
             <input type="submit">
         </form>
     </div>
 </div>
 <script>
     $('.ui.dropdown').dropdown();
+
+    var today = new Date();
+    var tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1)
+    console.log("Today: " + today)
+    console.log("Tomorrow: " + tomorrow)
+    $('#rangestart_1').calendar({
+        type: 'date',
+        initialDate: tomorrow,
+        minDate: today,
+        selectAdjacentDays: true,
+    });
+
+    // Add the functionality for the "Remove" button for the initial Calendar widget
+    // There needs to be always one date picker widget
+    // $('#card_1').on('click', '.remove', function () {
+    //     $("#card_1").remove();
+    // });
+
+
+    $(document).ready(function () {
+        // Add new calendar card
+        $("#addCalendarButton").click(function () {
+
+            var lastid = $(".card:last").attr("id");
+            var split_id = lastid.split("_");
+            var nextindex = Number(split_id[1]) + 1;
+            console.log("lastid: " + lastid)
+            console.log("split_id: " + split_id)
+            console.log("nextindex: " + nextindex)
+
+            $("#cards").append(`
+            <div class="card" id="card_` + nextindex + `">
+                        <div class="content">
+                            <label>Start date</label>
+                            <div class="ui calendar" id="rangestart_` + nextindex + `">
+                                <div class="ui input left icon">
+                                    <i class="calendar icon"></i>
+                                    <input name="dates[]" type="text">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="extra content" id='remove_` + nextindex + `'>
+                            <span class='remove'>
+                                <div class="ui basic red button" >Remove</div>  
+                            </span>
+                        </div>  
+                    </div>
+            `);
+            var today = new Date();
+            var tomorrow = new Date();
+            tomorrow.setDate(today.getDate() + 1)
+            $('#rangestart_' + nextindex).calendar({
+                type: 'date',
+                initialDate: tomorrow,
+                minDate: today,
+                selectAdjacentDays: true,
+            });
+
+            // Remove element
+            $('#card_' + nextindex).on('click', '.remove', function () {
+
+                var id = this.id;
+                var split_id = id.split("_");
+                var deleteindex = split_id[1];
+                console.log(id)
+                // Remove <div> with id
+                $("#card_" + deleteindex).remove();
+            });
+        });
+    });
+
 </script>
 {% endblock %}

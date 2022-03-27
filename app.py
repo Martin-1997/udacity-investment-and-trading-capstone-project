@@ -3,7 +3,7 @@ from unicodedata import name
 import werkzeug
 from flask import Flask, session, render_template, sessions, request, jsonify, Request, url_for, redirect
 import numpy as np
-from datetime import datetime as dt
+from datetime import date, datetime
 import joblib
 import os
 from flask_socketio import SocketIO, emit
@@ -15,7 +15,7 @@ import sqlalchemy
 from data_api.db import delete_model_by_name, return_engine, get_all_ticker_strings, get_ticker_by_ticker, get_all_models, get_model_by_name, get_new_nasdaq_tickers
 from data_api.db import get_model_by_id, model_name_exists, delete_all_models, load_formatted_train_data, create_ticker, delete_ticker_by_ticker
 from data_api.init_db import initialize_db, update_price_data_sets, update_ticker_price_data
-from models.model_func import save_model, load_model, make_predictions
+from models.model_func import save_model, load_model, make_predictions, get_required_timerange, convert_to_business_days
 from helper_functions import empty_data_dirs, delete_model_files_not_in_db, delete_model_files
 import models
 import data_api
@@ -110,8 +110,8 @@ def create_model():
             return render_template('create_model.html', tickers=tickers, notification_message="The model name \"{model_name}\" already exists, please select a different one", model_name=model_name)
 
         model_tickers = request.form.getlist('model_tickers')
-        start_date = dt.strptime(request.form['start_date'], date_format)
-        end_date = dt.strptime(request.form['end_date'], date_format)
+        start_date = datetime.strptime(request.form['start_date'], date_format)
+        end_date = datetime.strptime(request.form['end_date'], date_format)
 
         # Convert the tickers into ticker_ids
         model_tickers_ids = []
@@ -218,23 +218,49 @@ def predict():
 @app.route("/results", methods=['GET', 'POST'])
 def results():
     if request.method == "POST":
-        session['num_days'] = int(request.form.getlist('num_days')[0])
-        session['target_tickers'] = request.form.getlist('target_tickers')
+        # Extract the tickers to predict from the form
+        target_tickers = request.form.getlist('target_tickers')
+        # Get the ticker ids
+        ticker_ids = []
+        # Create the column names to extract later
+        result_col_names = []
+        # Also create the column names to output for the user
+        output_col_names = []
+        for ticker in target_tickers:
+            ticker_id = get_ticker_by_ticker(engine, ticker).Ticker.id
+            ticker_ids.append(ticker_id)
+            result_col_names.append(f"adj_close-{ticker_id}")
+            output_col_names.append(f"Price for {ticker}")
 
-        ticker_id = get_ticker_by_ticker(
-            engine, session['target_tickers'][0]).Ticker.id
+        # Extract the dates to predict from the form
+        dates = request.form.getlist('dates[]')
 
+        # Convert the dates
+        date_format = "%B %d, %Y"
+        date_objs = []
+        for date_str in dates:
+            date_objs.append(datetime.strptime(date_str, date_format).date())
+
+        date_objs = convert_to_business_days(date_objs)
+
+
+        # Load the model data from the db
         model_db = get_model_by_id(engine, session["model_id"])
         scaler = joblib.load(model_db.scaler_path)
-
         # Load the model object from the filesystem
         model = load_model(model_db.model_name)
 
+        # Get the required timerange to predict based on the dates
+        num_days = get_required_timerange(date_objs, model_db.end_date.date())
+
         df_forecast = make_predictions(
-            model, model_db.end_date, model_db.last_data, scaler, session['num_days'], model_db.data_columns)
-        # only forward the forcast data for the correct ticker
-        result_col_name = "adj_close-" + str(ticker_id)
-        return render_template('results.html', predictions=df_forecast[result_col_name])
+            model, model_db.end_date, model_db.last_data, scaler, num_days, model_db.data_columns)
+
+        filtered_df = df_forecast[result_col_names]
+        filtered_df.columns = output_col_names
+        filtered_df = filtered_df.loc[date_objs]
+
+        return render_template('results.html', predictions=filtered_df.to_html())
     # No POST method (with parameters) or no parameters set
     else:
         return render_template('results_missing_values.html')
