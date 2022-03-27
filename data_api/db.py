@@ -451,6 +451,19 @@ def get_formated_price_data_sets(engine, ticker_ids, start_date=dt(1900, 1, 1), 
 
 
 def create_price_data_set(engine, timestamp, open, close, high, low, adj_close, volume, ticker_id):
+    if open < 0:
+        raise ValueError('The open price needs to be non-negative')
+    if close < 0:
+        raise ValueError('The close price needs to be non-negative')
+    if high < 0:
+        raise ValueError('The high price needs to be non-negative')
+    if low < 0:
+        raise ValueError('The low price needs to be non-negative')
+    if adj_close < 0:
+        raise ValueError('The adj_close price needs to be non-negative')
+    if volume < 0:
+        raise ValueError('The volume needs to be non-negative')
+        
     with Session(engine) as session:
         price_data_set = Price_data_set(
             timestamp=timestamp,
@@ -471,6 +484,19 @@ def create_price_data_set(engine, timestamp, open, close, high, low, adj_close, 
 
 
 def update_price_data_set(engine, id, timestamp, open, close, high, low, adj_close, volume, ticker_id):
+    if open < 0:
+        raise ValueError('The open price needs to be non-negative')
+    if close < 0:
+        raise ValueError('The close price needs to be non-negative')
+    if high < 0:
+        raise ValueError('The high price needs to be non-negative')
+    if low < 0:
+        raise ValueError('The low price needs to be non-negative')
+    if adj_close < 0:
+        raise ValueError('The adj_close price needs to be non-negative')
+    if volume < 0:
+        raise ValueError('The volume needs to be non-negative')
+
     with Session(engine) as session:
         data = session.execute(
             select(Price_data_set).filter_by(id=id)).scalar_one()
