@@ -9,13 +9,14 @@ import os
 from flask_socketio import SocketIO, emit
 # For accessing sqlalchemy exceptions
 import sqlalchemy
+import pandas as pd
 
 
 # Import own libraries
 from data_api.db import delete_model_by_name, return_engine, get_all_ticker_strings, get_ticker_by_ticker, get_all_models, get_model_by_name, get_new_nasdaq_tickers
 from data_api.db import get_model_by_id, model_name_exists, delete_all_models, load_formatted_train_data, create_ticker, delete_ticker_by_ticker
 from data_api.init_db import initialize_db, update_price_data_sets, update_ticker_price_data
-from models.model_func import save_model, load_model, make_predictions, get_required_timerange, convert_to_business_days
+from models.model_func import save_model, load_model, make_predictions, convert_to_business_days # get_required_timerange, 
 from helper_functions import empty_data_dirs, delete_model_files_not_in_db, delete_model_files
 import models
 import data_api
@@ -231,18 +232,14 @@ def results():
             ticker_ids.append(ticker_id)
             result_col_names.append(f"adj_close-{ticker_id}")
             output_col_names.append(f"Price for {ticker}")
-
         # Extract the dates to predict from the form
         dates = request.form.getlist('dates[]')
-
         # Convert the dates
         date_format = "%B %d, %Y"
         date_objs = []
         for date_str in dates:
             date_objs.append(datetime.strptime(date_str, date_format).date())
-
         date_objs = convert_to_business_days(date_objs)
-
 
         # Load the model data from the db
         model_db = get_model_by_id(engine, session["model_id"])
@@ -250,14 +247,21 @@ def results():
         # Load the model object from the filesystem
         model = load_model(model_db.model_name)
 
-        # Get the required timerange to predict based on the dates
-        num_days = get_required_timerange(date_objs, model_db.end_date.date())
+        # Calculate the date range which needs to be predicted
+        date_range = pd.bdate_range(model_db.end_date.date(), max(date_objs) + pd.DateOffset(1))
+        num_days = len(date_range)
 
+        # Create a dataframe containing the predictions
         df_forecast = make_predictions(
             model, model_db.end_date, model_db.last_data, scaler, num_days, model_db.data_columns)
 
+        # Only filter for the specified columns
         filtered_df = df_forecast[result_col_names]
+        # Reformat the column names
         filtered_df.columns = output_col_names
+        # Set the index to the correct dates
+        filtered_df.index = date_range
+        # Filter to only return the requested dates
         filtered_df = filtered_df.loc[date_objs]
 
         return render_template('results.html', predictions=filtered_df.to_html())

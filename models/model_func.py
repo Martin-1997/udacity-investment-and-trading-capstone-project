@@ -28,7 +28,9 @@ def get_model(input_shape, output_shape, print_summary=True):
         input_shape[1], input_shape[2]), return_sequences=True))
     model.add(LSTM(32, activation='relu', return_sequences=False))
     model.add(Dropout(0.2))
-    model.add(Dense(output_shape[2]))
+    # If non-negative return values are required, this should be accomplished by the layers in the network. Anyway, with only non-negative input values, negative output values are very unlikely.
+    # The relu activation function only returns positive values. -> This returns the same values for each predicted date
+    model.add(Dense(output_shape[2]))  # ,  W_constraint=nonneg()))
     model.compile(optimizer='adam', loss='mse')
     print("Model was successfully created:")
     if print_summary:
@@ -89,18 +91,19 @@ def create_model(data,  n_past=60):
     return model, trainX[-1], scaler, data.columns
 
 
-def create_prediction_date_range(last_date_model, n_days):
-    """
-    Outputs the dates for the next n_days business days
-    """
-    us_bd = CustomBusinessDay(calendar=USFederalHolidayCalendar())
-    dates_to_predict = pd.date_range(
-        last_date_model, periods=n_days, freq=us_bd).tolist()
-    # Convert timestamp to date
-    forecast_dates = []
-    for time_i in dates_to_predict:
-        forecast_dates.append(time_i.date())
-    return forecast_dates
+# def create_prediction_date_range(last_date_model, n_days):
+#     """
+#     Outputs the dates for the next n_days business days
+#     """
+#     us_bd = CustomBusinessDay(calendar=USFederalHolidayCalendar())
+#     dates_to_predict = pd.date_range(
+#         last_date_model, periods=n_days, freq=us_bd).tolist()
+    
+#     # Convert timestamp to date
+#     forecast_dates = []
+#     for time_i in dates_to_predict:
+#         forecast_dates.append(time_i.date())
+#     return forecast_dates
 
 
 def make_predictions(model, last_date_model, last_data, scaler, n_days, data_columns):
@@ -108,8 +111,8 @@ def make_predictions(model, last_date_model, last_data, scaler, n_days, data_col
     Creates and returns predictions for the next n_days days
     """
     # Get the range of dates to predict values for
-    forecast_dates = create_prediction_date_range(
-        last_date_model, n_days)
+    # forecast_dates = create_prediction_date_range(
+    #     last_date_model, n_days)
 
     # Add a data column
     # data_columns.append("date")
@@ -123,7 +126,7 @@ def make_predictions(model, last_date_model, last_data, scaler, n_days, data_col
         1, last_data.shape[0], last_data.shape[1])
 
     i = 1
-    for i in range(0, len(forecast_dates)):
+    for i in range(0, n_days): # len(forecast_dates)):
         # Make prediction
         prediction = model.predict(three_dim_last_data)
         # Perform inverse transformation to rescale back to original range
@@ -141,9 +144,9 @@ def make_predictions(model, last_date_model, last_data, scaler, n_days, data_col
         # Drop the first row in the dataframe to again have the same amount of rows
         three_dim_last_data = three_dim_last_data[:,
                                                   1: three_dim_last_data.shape[1] + 1]
-
-    data = np.reshape(data, [len(forecast_dates), len(data_columns)])
-    df = pd.DataFrame(data = data, index = pd.to_datetime(forecast_dates), columns=data_columns)
+    # len(forecast_dates)
+    data = np.reshape(data, [n_days, len(data_columns)])
+    df = pd.DataFrame(data=data,  columns=data_columns) # index=pd.to_datetime(forecast_dates),
     return df
 
 
@@ -163,23 +166,27 @@ def load_model(name, path="./data/models/", extension=".h5"):
     return keras.models.load_model(f'{path}{name}{extension}')
 
 
-def get_required_timerange(dates, base_date = date.today()):
-    """
-    This function returns the amount of days which need to be predicted, to have all dates in the list included.
-    """
-    max_diff = 0
-    for date in dates:
-        diff = (date.date() - base_date).days
-        if diff > max_diff:
-            max_diff = diff
-    return max_diff
+# def get_required_timerange(dates, base_date=date.today()):
+#     """
+#     This function returns the amount of days which need to be predicted, to have all dates in the list included.
+#     """
+#     max_diff = 0
+#     for date_obj in dates:
+#         diff = (date_obj.date() - base_date).days
+#         if diff > max_diff:
+#             max_diff = diff
+#     return max_diff + 1
+
 
 def convert_to_business_days(date_list):
     """
     Converts all non-business days to the next business day. Drops duplicates which exist already or which appear during the conversion.
     """
     date_list = pd.to_datetime(date_list)
-    business_days = pd.bdate_range(min(date_list), max(date_list))
+    # Expand the time range by 1 into the past and into the future to avoid problems with the range creation, if only a single date is selected
+    # In the case of a single date, who is not a business date, this date will be anyway returned as the only member of the range
+    business_days = pd.bdate_range(
+        min(date_list) - pd.DateOffset(1), max(date_list) + pd.DateOffset(1))
     new_date_list = []
     for date_obj in date_list:
         if date_obj in business_days:
