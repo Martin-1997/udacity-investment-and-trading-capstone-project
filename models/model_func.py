@@ -3,12 +3,14 @@ import numpy as np
 import matplotlib as plt
 import pandas as pd
 import keras
+from keras.wrappers.scikit_learn import KerasRegressor
 from keras.models import Sequential
 from keras.layers import Dense, LSTM, Dropout
 from sklearn.preprocessing import StandardScaler
 from pandas.tseries.offsets import CustomBusinessDay
 from pandas.tseries.holiday import USFederalHolidayCalendar
 from datetime import date
+from sklearn.pipeline import Pipeline
 
 
 def print_performance(history):
@@ -19,7 +21,7 @@ def print_performance(history):
     print("\n")
 
 
-def get_model(input_shape, output_shape, print_summary=True):
+def get_model(input_shape, output_shape, optimizer="adam", loss="mse", dropout=0.2, print_summary=True):
     """
     Returns a predefined model object
     """
@@ -27,16 +29,45 @@ def get_model(input_shape, output_shape, print_summary=True):
     model.add(LSTM(64, activation='relu', input_shape=(
         input_shape[1], input_shape[2]), return_sequences=True))
     model.add(LSTM(32, activation='relu', return_sequences=False))
-    model.add(Dropout(0.2))
+    model.add(Dropout(dropout))
     # If non-negative return values are required, this should be accomplished by the layers in the network. Anyway, with only non-negative input values, negative output values are very unlikely.
     # The relu activation function only returns positive values. -> This returns the same values for each predicted date
     model.add(Dense(output_shape[2]))  # ,  W_constraint=nonneg()))
-    model.compile(optimizer='adam', loss='mse')
+    model.compile(optimizer=optimizer, loss=loss)
     print("Model was successfully created:")
     if print_summary:
         print(model.summary())
     return model
 
+
+def get_model_wrapped(input_shape, output_shape, optimizer="adam", loss="mse", dropout=0.2, print_summary=True):
+    """
+    Returns a predefined model object
+    """
+    def wrapped():
+        model = Sequential()
+        model.add(LSTM(64, activation='relu', input_shape=(
+            input_shape[1], input_shape[2]), return_sequences=True))
+        model.add(LSTM(32, activation='relu', return_sequences=False))
+        model.add(Dropout(dropout))
+        # If non-negative return values are required, this should be accomplished by the layers in the network. Anyway, with only non-negative input values, negative output values are very unlikely.
+        # The relu activation function only returns positive values. -> This returns the same values for each predicted date
+        model.add(Dense(output_shape[2]))  # ,  W_constraint=nonneg()))
+        model.compile(optimizer=optimizer, loss=loss)
+        print("Model was successfully created:")
+        if print_summary:
+            print(model.summary())
+        return model
+    return wrapped
+
+def get_pipeline(input_shape, output_shape):
+    clf = KerasRegressor(build_fn=get_model_wrapped(input_shape, output_shape),verbose=0)
+    # just create the pipeline
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('clf',clf),
+    ])
+    return pipeline
 
 def create_train_test_arrays(n_past, df):
     """
@@ -67,19 +98,28 @@ def create_model(data,  n_past=60):
 
     # LSTM uses sigmoid and tanh that are sensitive to magnitude so values need to be normalized
     # normalize the dataset
-    scaler = StandardScaler()
-    scaler = scaler.fit(data)
-    df_for_training_scaled = scaler.transform(data)
-    print(
-        f"Dataset successfully scaled. n_features of the scaler: {scaler.n_features_in_}")
+
+
+    # scaler = StandardScaler()
+    # scaler = scaler.fit(data)
+    # df_for_training_scaled = scaler.transform(data)
+    # print(
+    #     f"Dataset successfully scaled. n_features of the scaler: {scaler.n_features_in_}")
+
 
     # As required for LSTM networks, we require to reshape an input data into n_samples x timesteps x n_features.
     # In this example, the n_features is 5. We will make timesteps = 14 (past days data used for training).
-    trainX, trainY = create_train_test_arrays(
-        n_past=n_past, df=df_for_training_scaled)
+    # trainX, trainY = create_train_test_arrays(
+    #     n_past=n_past, df=df_for_training_scaled)
 
-    model = get_model(input_shape=trainX.shape,
-                      output_shape=trainY.shape, print_summary=False)
+    trainX, trainY = create_train_test_arrays(
+        n_past=n_past, df=data)
+
+    # model = get_model(input_shape=trainX.shape,
+    #                   output_shape=trainY.shape, print_summary=False)
+
+    model = get_pipeline(input_shape=trainX.shape,
+                       output_shape=trainY.shape)
 
     # fit the model
     history = model.fit(trainX, trainY, epochs=1,
@@ -88,7 +128,8 @@ def create_model(data,  n_past=60):
 
     # print_performance(history)
 
-    return model, trainX[-1], scaler, data.columns
+    # return model, trainX[-1], scaler, data.columns
+    return model, trainX[-1],  data.columns
 
 
 # def create_prediction_date_range(last_date_model, n_days):
