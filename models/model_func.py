@@ -79,8 +79,8 @@ def create_train_test_arrays(n_past, df):
     trainY = []
     # #Reformat input data into a shape: (n_samples x timesteps x n_features)
     for i in range(n_past, len(df)):
-        trainX.append(df[i - n_past:i, 0:df.shape[1]])
-        trainY.append(df[i:i + 1])
+        trainX.append(df.iloc[i - n_past:i, 0:df.shape[1]])
+        trainY.append(df.iloc[i:i + 1])
     trainX, trainY = np.array(trainX), np.array(trainY)
     print("Train dataset was successfully created:")
     print(f"trainX shape == {trainX.shape}")
@@ -122,8 +122,8 @@ def create_model(data,  n_past=60):
                        output_shape=trainY.shape)
 
     # fit the model
-    history = model.fit(trainX, trainY, epochs=1,
-                        batch_size=16, validation_split=0.1, verbose=1)
+    history = model.fit(trainX, trainY, clf__epochs=1,
+                        clf__batdech_size=16, clf__validation_split=0.1, clf__verbose=1)
     print("Model training successfull")
 
     # print_performance(history)

@@ -134,6 +134,12 @@ def create_model():
         # Therefore we assume a hypothetical price of 0
         train_data.fillna(value=0, inplace=True)
 
+        print("")
+        print("")
+        print(f"Train data shape: {train_data.shape}")
+        print("")
+        print("")
+
         # Create a Keras ML model
         try:
             model, last_data, scaler, data_columns = models.model_func.create_model(
@@ -151,7 +157,7 @@ def create_model():
         joblib.dump(scaler, scaler_path)
 
         try:
-            model_id = data_api.db.create_model(engine, model_name, start_date, end_date,
+            model_id = data_api.db.create_model_db(engine, model_name, start_date, end_date,
                                                 model_tickers_ids, data_columns, last_data, scaler_path, model_path)
         except sqlalchemy.exc.InvalidRequestError as invalidRequestError:
             error_message = f"An invalid request error occured: {invalidRequestError}"

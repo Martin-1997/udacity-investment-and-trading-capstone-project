@@ -18,9 +18,9 @@ import numpy as np
 import json
 # Import own libraries
 from data_api.db import return_engine, get_all_ticker_strings, get_ticker_by_ticker, delete_ticker, delete_model
-from data_api.db import Model, get_ticker_by_id, create_model, get_model_by_id, create_ticker, create_price_data_set
+from data_api.db import Model, get_ticker_by_id, create_model_db, get_model_by_id, create_ticker, create_price_data_set
 from data_api.init_db import initialize_db, update_price_data_sets
-# from models.model_func import create_model, save_model, load_formatted_train_data, load_model, make_predictions
+from models.model_func import create_model, save_model, load_formatted_train_data, load_model, make_predictions
 
 #initialize_db(start_date=dt(2022, 2, 10), end_date=dt.today())
 
@@ -72,7 +72,7 @@ data_columns = pd.DataFrame(columns=["column1", "column2", "column3"]).columns
 array = np.random.rand(1, 1, 60)
 
 
-AAPL_MSFT_id = create_model(engine, model_name, start_date, end_date, tickers=ticker_ids, data_columns=data_columns,
+AAPL_MSFT_id = create_model_db(engine, model_name, start_date, end_date, tickers=ticker_ids, data_columns=data_columns,
                             last_data=array, scaler_path=scaler_dir + "test", model_path=model_dir + "test")
 
 ticker_ids = [msft_id, goog_id]
@@ -82,7 +82,7 @@ end_date = dt(2020, 5, 1)
 data_columns = pd.DataFrame(columns=["column1", "column2", "column3"]).columns
 array = np.random.rand(1, 1, 60)
 
-MSFT_GOOG_id = create_model(engine, model_name, start_date, end_date, tickers=ticker_ids, data_columns=data_columns,
+MSFT_GOOG_id = create_model_db(engine, model_name, start_date, end_date, tickers=ticker_ids, data_columns=data_columns,
                             last_data=array, scaler_path=scaler_dir + "test", model_path=model_dir + "test")
 
 delete_ticker(engine, aapl_id)

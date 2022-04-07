@@ -182,7 +182,7 @@ def get_model_by_name(engine, model_name):
     return result
 
 
-def create_model(engine, model_name, start_date, end_date, tickers, data_columns, last_data, scaler_path, model_path):
+def create_model_db(engine, model_name, start_date, end_date, tickers, data_columns, last_data, scaler_path, model_path):
     """
     Add a new model to the database
     """
