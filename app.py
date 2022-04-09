@@ -16,7 +16,8 @@ import pandas as pd
 from data_api.db import delete_model_by_name, return_engine, get_all_ticker_strings, get_ticker_by_ticker, get_all_models, get_model_by_name, get_new_nasdaq_tickers
 from data_api.db import get_model_by_id, model_name_exists, delete_all_models, load_formatted_train_data, create_ticker, delete_ticker_by_ticker
 from data_api.init_db import initialize_db, update_price_data_sets, update_ticker_price_data
-from models.model_func import save_model, load_model, make_predictions, convert_to_business_days # get_required_timerange, 
+# get_required_timerange,
+from models.model_func import save_model, load_model, make_predictions, convert_to_business_days
 from helper_functions import empty_data_dirs, delete_model_files_not_in_db, delete_model_files
 import models
 import data_api
@@ -248,7 +249,8 @@ def results():
         model = load_model(model_db.model_name)
 
         # Calculate the date range which needs to be predicted
-        date_range = pd.bdate_range(model_db.end_date.date(), max(date_objs) + pd.DateOffset(1))
+        date_range = pd.bdate_range(
+            model_db.end_date.date(), max(date_objs) + pd.DateOffset(1))
         num_days = len(date_range)
 
         # Create a dataframe containing the predictions
@@ -272,32 +274,51 @@ def results():
 
 @app.route("/edit_tickers", methods=['GET', 'POST'])
 def edit_tickers():
+    # Change to "asset" to view the stock names instead of the tickers in the GUI
+    view_type = "ticker"
+
     # Download the available tickers
     all_tickers, asset_names = get_new_nasdaq_tickers(engine)
     # If the page is called using a GET method, show the page without any action except showing all available and existing tickers
     if request.method == "GET":
         existing_tickers = get_all_ticker_strings(engine)
-        return render_template('edit_tickers.html', all_tickers=all_tickers, asset_names=asset_names, existing_tickers=existing_tickers,  notification_message=None)
+        if view_type == "ticker":
+            return render_template('edit_tickers.html', asset_names=all_tickers, existing_tickers=existing_tickers,  notification_message=None)
+        elif view_type == "asset":
+            return render_template('edit_tickers.html', asset_names=asset_names, existing_tickers=existing_tickers,  notification_message=None)
     elif request.method == "POST":
         if "add_tickers" in request.form:
             assets = request.form.getlist('asset_names')
+            # Track which ones can be updated/downloaded and which ones not -> any error with the connection, the data source etc.
             successes = list()
             failures = list()
             for asset in assets:
-                ticker_index = asset_names.index(asset)
+                if view_type == "ticker":
+                    ticker_index = all_tickers.index(asset)
+                elif view_type == "asset":
+                    ticker_index = asset_names.index(asset)
                 ticker_id = create_ticker(
                     engine, ticker=all_tickers[ticker_index], name=asset_names[ticker_index])
                 result = update_ticker_price_data(engine, ticker_id)
-                if result:
-                    successes.append(asset_names[ticker_index])
-                else:
-                    failures.append(asset_names[ticker_index])
+                if view_type == "ticker":
+                    if result:
+                        successes.append(all_tickers[ticker_index])
+                    else:
+                        failures.append(all_tickers[ticker_index])
+                elif view_type == "asset":
+                    if result:
+                        successes.append(asset_names[ticker_index])
+                    else:
+                        failures.append(asset_names[ticker_index])
                 # Update the ticker list so that the newly added tickers are included
                 existing_tickers = get_all_ticker_strings(engine)
 
             notification_message = f"The following tickers have been added: {successes} \n \n The following tickers have not been added due to an error: {failures}"
 
-            return render_template('edit_tickers.html', all_tickers=all_tickers, asset_names=asset_names, existing_tickers=existing_tickers,  notification_message=notification_message, added=True)
+            if view_type == "ticker":
+                return render_template('edit_tickers.html', asset_names=all_tickers, existing_tickers=existing_tickers,  notification_message=notification_message)
+            elif view_type == "asset":
+                return render_template('edit_tickers.html', asset_names=asset_names, existing_tickers=existing_tickers,  notification_message=notification_message)
 
         elif "delete_tickers" in request.form:
             tickers = request.form.getlist('existing_tickers')
