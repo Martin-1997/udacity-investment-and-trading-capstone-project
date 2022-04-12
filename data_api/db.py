@@ -10,7 +10,6 @@ import numpy as np
 import os
 import pandas_datareader as pdr
 
-
 from data_api.access_api import get_stock_data
 
 
@@ -39,11 +38,6 @@ model_ticker = Table('model_ticker', Base.metadata,
                          'tickers.id'), primary_key=True)
                      )
 
-# class ModelTicker(Base):
-#     __tablename__ = 'model_ticker'
-#     model_id = Column(Integer, ForeignKey('model.id'), primary_key=True),
-#     ticker_id = Column(Integer, ForeignKey('ticker.id'), primary_key=True)
-
 
 class Model(Base):
     """
@@ -64,8 +58,6 @@ class Model(Base):
     # If a model gets deleted, all the linked model_ticker entries get deleted -> no cascade rule required?
     tickers = relationship("Ticker",
                            secondary=model_ticker, back_populates="models")
-    # ticker_ids = relationship("Ticker",
-    #                           secondary=model_ticker, backref="models")
     # If a model gets deleted, all the linked predictions also get deleted
     # delete-orphan also deletes the child when it is deassociated from the parent
     prediction_ids = relationship(
@@ -151,8 +143,6 @@ def get_model_by_id(engine, model_id):
     Returns a single model identified by its ID
     """
     with Session(engine) as session:
-        # result = session.execute(select(Model).where(
-        #     Model.id == model_id)).first()[0] # Otherwise, not the "real" model object is returned
         result = session.query(Model).options(joinedload(
             Model.tickers)).filter(Model.id == model_id).first()
         # If there is no model in the database, the result will be None
@@ -168,13 +158,6 @@ def get_model_by_name(engine, model_name):
     Returns a single model identified by its name
     """
     with Session(engine) as session:
-        # session.expire_on_commit = False
-        # result = session.execute(select(Model).where(
-        #     Model.model_name == model_name)).first()[0] # Otherwise, not the "real" model object is returned
-        # https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html
-        # https://docs.sqlalchemy.org/en/14/glossary.html#term-eager-loading
-        # https://docs.sqlalchemy.org/en/14/orm/session_api.html#sqlalchemy.orm.Session.params.expire_on_commit
-
         result = session.query(Model).options(joinedload(Model.tickers)).filter(
             Model.model_name == model_name).first()
         result.data_columns = json.loads(result.data_columns)
@@ -193,7 +176,6 @@ def create_model(engine, model_name, start_date, end_date, tickers, data_columns
         # We need to query an instance for each ticker object from the database
         ticker_id_instances = get_ticker_instances(engine, tickers)
         data_columns = data_columns.tolist()
-        # print(f"data_columns: {data_columns}, type: {type(data_columns)}")
 
         model = Model(model_name=model_name,
                       start_date=start_date, end_date=end_date,
@@ -216,8 +198,6 @@ def update_model(engine, model_id, model_name, start_date, end_date, ticker_ids,
     Update a model specified by its ID
     """
     with Session(engine) as session:
-        # result = session.execute(select(Model).where(
-        #     Model.id == model_id)).first()[0] # Otherwise, not the "real" model object is returned
         model = session.query(Model).options(joinedload(
             Model.tickers)).filter(Model.id == model_id).first()
         model.model_name = model_name
@@ -254,7 +234,6 @@ def delete_model_by_name(engine, model_name):
 
 def delete_all_models(engine):
     with Session(engine) as session:
-        # TODO check if cascade deletion works here
         models = session.query(Model).filter().all()
         print(models)
         for model in models:
@@ -315,8 +294,6 @@ def get_ticker_by_id(engine, ticker_id):
     Returns a single ticker identified by its ID
     """
     with Session(engine) as session:
-        # result = session.execute(select(Ticker).where(
-        #     Ticker.id == ticker_id)).first()
         result = session.query(Ticker).filter(Ticker.id == ticker_id).first()
     return result
 
@@ -400,8 +377,6 @@ def get_new_nasdaq_tickers(engine):
 
 def get_price_data_set(engine, id):
     with Session(engine) as session:
-        # result = session.execute(select(Ticker).where(
-        #     Ticker.id == ticker_id)).first()
         result = session.query(Price_data_set).filter(
             Price_data_set.id == id).first()
     return result
@@ -414,7 +389,7 @@ def get_all_price_data_sets(engine, ticker_ids=None, start_date=dt(1900, 1, 1), 
                 Price_data_set.timestamp <= end_date)
         else:
             sql_alchemy_selectable = select(Price_data_set).where(start_date <= Price_data_set.timestamp).where(
-                Price_data_set.timestamp <= end_date).filter(Price_data_set.ticker_id.in_(ticker_ids))  # .where(Price_data_set.ticker_id in ticker_ids)
+                Price_data_set.timestamp <= end_date).filter(Price_data_set.ticker_id.in_(ticker_ids))
 
         data = pd.read_sql(sql=sql_alchemy_selectable,
                            con=con,
@@ -429,7 +404,7 @@ def get_formated_price_data_sets(engine, ticker_ids, start_date=dt(1900, 1, 1), 
     index | adj-close-{id1} | adj-close-id{2} | ... | volume-{id1} | volume-{id2} | ... | timestamp
 
     """
-    # Drop all ticker_ids which are contained multiple times
+    # Drop all ticker_ids which exist multiple times
     ticker_ids = set(ticker_ids)
 
     df = get_all_price_data_sets(engine, ticker_ids, start_date, end_date)
@@ -438,7 +413,6 @@ def get_formated_price_data_sets(engine, ticker_ids, start_date=dt(1900, 1, 1), 
     # Convert the ticker_id column to string - this is required to create new column names based on that column
     df["ticker_id"] = df["ticker_id"].apply(str)
     # Apply the pivot function, to create a multicolumn_index based on values and ticker_id, set timestamp as the index to avoid having this column twice
-    # df = df.pivot(index="timestamp", columns="ticker_id", values=["adj_close", "volume"])
     pivot = pd.pivot_table(data=df, columns="ticker_id",
                            index="timestamp", values=['adj_close', 'volume'])
     # Create the new columns
@@ -463,7 +437,7 @@ def create_price_data_set(engine, timestamp, open, close, high, low, adj_close, 
         raise ValueError('The adj_close price needs to be non-negative')
     if volume < 0:
         raise ValueError('The volume needs to be non-negative')
-        
+
     with Session(engine) as session:
         price_data_set = Price_data_set(
             timestamp=timestamp,
@@ -608,8 +582,6 @@ def create_prediction(engine, tickers, dates, values, model_id):
 
 def update_prediction(engine, id, tickers, dates, values, model_id):
     with Session(engine) as session:
-        # result = session.execute(select(Model).where(
-        #     Model.id == model_id)).first()[0] # Otherwise, not the "real" model object is returned
         prediction = session.query(Prediction).filter(
             Prediction.id == id).first()
         prediction.tickers = json.dumps(tickers.tolist())

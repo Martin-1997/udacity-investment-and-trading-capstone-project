@@ -11,17 +11,14 @@ from flask_socketio import SocketIO, emit
 import sqlalchemy
 import pandas as pd
 
-
 # Import own libraries
 from data_api.db import delete_model_by_name, return_engine, get_all_ticker_strings, get_ticker_by_ticker, get_all_models, get_model_by_name, get_new_nasdaq_tickers
 from data_api.db import get_model_by_id, model_name_exists, delete_all_models, load_formatted_train_data, create_ticker, delete_ticker_by_ticker
 from data_api.init_db import initialize_db, update_price_data_sets, update_ticker_price_data
-# get_required_timerange,
 from models.model_func import save_model, load_model, make_predictions, convert_to_business_days
 from helper_functions import empty_data_dirs, delete_model_files_not_in_db, delete_model_files
 import models
 import data_api
-
 
 # Define the data paths
 current_dir = os.path.dirname(__file__)
@@ -37,14 +34,12 @@ if not os.path.exists(model_dir):
     os.makedirs(model_dir)
 if not os.path.exists(scaler_dir):
     os.makedirs(scaler_dir)
-
 if os.path.exists(os.path.join(database_dir, db_filename)):
     # If the database already exits, get a connection to the database
     engine = return_engine(database_dir, db_filename=db_filename)
 else:
     # Otherwise, create a new database and initialize it with data
     engine = initialize_db(database_dir,  db_filename=db_filename)
-
 
 # Setup Flask
 app = Flask(__name__)
@@ -165,7 +160,6 @@ def create_model():
             f"Model \"{model_name}\" with id {model_id} was successfully created!")
 
         return redirect(url_for('predict', model_tickers=tickers, start_date=start_date, end_date=end_date))
-        # return render_template('create_model.html', tickers=tickers, created=True, model_name = model_name)
     else:
         return "Error, only GET and POST requests are supported"
 

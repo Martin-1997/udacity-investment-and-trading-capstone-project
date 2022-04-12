@@ -25,11 +25,6 @@
                 {% endfor %}
             </select>
 
-            <!-- <br>
-            <label for="num_days">Select a number of days to predict:</label>
-            <input type="number" id="num_days" name="num_days" min="1" required>
-            <br> -->
-
             <br>
             <label for="date_pickers"> Select the dates for which you want to predict the stock price: </label>
             <br>
@@ -79,12 +74,6 @@
         minDate: today,
         selectAdjacentDays: true,
     });
-
-    // Add the functionality for the "Remove" button for the initial Calendar widget
-    // There needs to be always one date picker widget
-    // $('#card_1').on('click', '.remove', function () {
-    //     $("#card_1").remove();
-    // });
 
 
     $(document).ready(function () {

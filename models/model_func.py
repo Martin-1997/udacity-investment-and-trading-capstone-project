@@ -46,7 +46,7 @@ def create_train_test_arrays(n_past, df):
     # Empty lists to be populated using formatted training data
     trainX = []
     trainY = []
-    # #Reformat input data into a shape: (n_samples x timesteps x n_features)
+    # Reformat input data into a shape: (n_samples x timesteps x n_features)
     for i in range(n_past, len(df)):
         trainX.append(df[i - n_past:i, 0:df.shape[1]])
         trainY.append(df[i:i + 1])
@@ -62,19 +62,14 @@ def create_model(data,  n_past=60):
     Prepares the data and creates and trains a model
     """
 
-    assert(
-        data.shape[0] > n_past),  f"Training not possible. A minimum of {n_past} days is needed to train the model. Only {data.shape[0]} days have been seleted."
+    assert(data.shape[0] > n_past),  f"Training not possible. A minimum of {n_past} days is needed to train the model. Only {data.shape[0]} days have been seleted."
 
-    # LSTM uses sigmoid and tanh that are sensitive to magnitude so values need to be normalized
-    # normalize the dataset
+    # Normalize the dataset
     scaler = StandardScaler()
     scaler = scaler.fit(data)
     df_for_training_scaled = scaler.transform(data)
-    print(
-        f"Dataset successfully scaled. n_features of the scaler: {scaler.n_features_in_}")
+    print(f"Dataset successfully scaled. n_features of the scaler: {scaler.n_features_in_}")
 
-    # As required for LSTM networks, we require to reshape an input data into n_samples x timesteps x n_features.
-    # In this example, the n_features is 5. We will make timesteps = 14 (past days data used for training).
     trainX, trainY = create_train_test_arrays(
         n_past=n_past, df=df_for_training_scaled)
 
@@ -86,39 +81,13 @@ def create_model(data,  n_past=60):
                         batch_size=16, validation_split=0.1, verbose=1)
     print("Model training successfull")
 
-    # print_performance(history)
-
     return model, trainX[-1], scaler, data.columns
-
-
-# def create_prediction_date_range(last_date_model, n_days):
-#     """
-#     Outputs the dates for the next n_days business days
-#     """
-#     us_bd = CustomBusinessDay(calendar=USFederalHolidayCalendar())
-#     dates_to_predict = pd.date_range(
-#         last_date_model, periods=n_days, freq=us_bd).tolist()
-    
-#     # Convert timestamp to date
-#     forecast_dates = []
-#     for time_i in dates_to_predict:
-#         forecast_dates.append(time_i.date())
-#     return forecast_dates
 
 
 def make_predictions(model, last_date_model, last_data, scaler, n_days, data_columns):
     """
     Creates and returns predictions for the next n_days days
     """
-    # Get the range of dates to predict values for
-    # forecast_dates = create_prediction_date_range(
-    #     last_date_model, n_days)
-
-    # Add a data column
-    # data_columns.append("date")
-
-    # create an empty result dataframe to store all the predictions later
-    # df = pd.DataFrame(columns=data_columns)
     data = []
 
     # Within this step, an additional dimension is added
@@ -164,19 +133,7 @@ def load_model(name, path="./data/models/", extension=".h5"):
     Loads the model from disk
     """
     return keras.models.load_model(f'{path}{name}{extension}')
-
-
-# def get_required_timerange(dates, base_date=date.today()):
-#     """
-#     This function returns the amount of days which need to be predicted, to have all dates in the list included.
-#     """
-#     max_diff = 0
-#     for date_obj in dates:
-#         diff = (date_obj.date() - base_date).days
-#         if diff > max_diff:
-#             max_diff = diff
-#     return max_diff + 1
-
+    
 
 def convert_to_business_days(date_list):
     """
