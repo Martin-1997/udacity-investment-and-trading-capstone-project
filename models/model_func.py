@@ -42,6 +42,7 @@ def create_train_test_arrays(n_past, df):
     """
     Takes the data and creates trainX and trainY datasets. n_past values are used to predict the value at index n_past + 1
     """
+    
     # Prepare training and testing data
     # Empty lists to be populated using formatted training data
     trainX = []
