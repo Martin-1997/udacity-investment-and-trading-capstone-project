@@ -1,6 +1,6 @@
 # Imports
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt 
 import pandas as pd
 import keras
 from keras.models import Sequential
@@ -26,12 +26,11 @@ def get_model(input_shape, output_shape, print_summary=True):
     model = Sequential()
     model.add(LSTM(64, activation='relu', input_shape=(
         input_shape[1], input_shape[2]), return_sequences=True))
-    model.add(LSTM(32, activation='relu', return_sequences=False))
     model.add(Dropout(0.2))
     # If non-negative return values are required, this should be accomplished by the layers in the network. Anyway, with only non-negative input values, negative output values are very unlikely.
     # The relu activation function only returns positive values. -> This returns the same values for each predicted date
     model.add(Dense(output_shape[2]))  # ,  W_constraint=nonneg()))
-    model.compile(optimizer='adam', loss='mse')
+    model.compile(optimizer='adam', loss='mse', metrics = ["accuracy"])
     print("Model was successfully created:")
     if print_summary:
         print(model.summary())
@@ -77,11 +76,12 @@ def create_model(data,  n_past=60):
                       output_shape=trainY.shape, print_summary=False)
 
     # fit the model
-    history = model.fit(trainX, trainY, epochs=1,
+    history = model.fit(trainX, trainY, epochs=100, 
                         batch_size=16, validation_split=0.1, verbose=1)
     print("Model training successfull")
 
-    return model, trainX[-1], scaler, data.columns
+    # return model, trainX[-1], scaler, data.columns
+    return model, trainX[-1], scaler, data.columns, history
 
 
 def make_predictions(model, last_date_model, last_data, scaler, n_days, data_columns):
@@ -133,7 +133,7 @@ def load_model(name, path="./data/models/", extension=".h5"):
     Loads the model from disk
     """
     return keras.models.load_model(f'{path}{name}{extension}')
-    
+
 
 def convert_to_business_days(date_list):
     """
