@@ -408,33 +408,6 @@ def get_all_price_data_sets(engine, ticker_ids=None, start_date=dt(1900, 1, 1), 
     return data
 
 
-def get_formated_price_data_sets(engine, ticker_ids, start_date=dt(1900, 1, 1), end_date=dt.today()):
-    """
-    Returns a formated dataframe with the following columns:
-
-    index | adj-close-{id1} | adj-close-id{2} | ... | volume-{id1} | volume-{id2} | ... | timestamp
-
-    """
-    # Drop all ticker_ids which exist multiple times
-    ticker_ids = set(ticker_ids)
-
-    df = get_all_price_data_sets(engine, ticker_ids, start_date, end_date)
-    # Drop the unnecessary columns
-    df = df[["timestamp", "adj_close", "volume", "ticker_id"]]
-    # Convert the ticker_id column to string - this is required to create new column names based on that column
-    df["ticker_id"] = df["ticker_id"].apply(str)
-    # Apply the pivot function, to create a multicolumn_index based on values and ticker_id, set timestamp as the index to avoid having this column twice
-    pivot = pd.pivot_table(data=df, columns="ticker_id",
-                           index="timestamp", values=['adj_close', 'volume'])
-    # Create the new columns
-    pivot.columns = ['-'.join(x) for x in pivot.columns]
-    # Add timestamp as a column again
-    pivot["timestamp"] = pivot.index
-    # Add a numerical index
-    pivot.index = range(1, pivot.shape[0] + 1)
-    return pivot
-
-
 def create_price_data_set(engine, timestamp, open, close, high, low, adj_close, volume, ticker_id):
     if open < 0:
         raise ValueError('The open price needs to be non-negative')
@@ -527,24 +500,37 @@ def delete_price_data_set_by_ticker_id(engine, ticker_id):
         return ticker_id
 
 
-def load_formatted_train_data(engine, ticker_ids, start_date, end_date):
+def load_formatted_train_data(engine, ticker_ids, start_date=dt(1900, 1, 1), end_date=dt.today(), return_timestamp = True):
     """
-    Loads the required raw data from the database
+    Loads the data from the databse and returns a formated dataframe with the following columns:
+
+    index | adj-close-{id1} | adj-close-id{2} | ... | volume-{id1} | volume-{id2} | ... | timestamp
+
+    If "return_timestamp = False", no timestamp is going to be returned
     """
-    # Get the data from the API
-    # df = api.get_adj_close_df(tickers, start_date, end_date, date_index=False)
+    # Drop all ticker_ids which exist multiple times
+    ticker_ids = set(ticker_ids)
 
-    # Get the data from the database
-    df = get_formated_price_data_sets(engine, ticker_ids, start_date, end_date)
-
-    # Extract the dates from the dataframe
-    dates = df["timestamp"]
-    df.drop(["timestamp"], axis=1, inplace=True)
-
-    # New dataframe with only training data
-    df_for_training = df.astype(float)
-    print(f"Data columns used to build model: {df.columns.values}")
-    return df_for_training
+    df = get_all_price_data_sets(engine, ticker_ids, start_date, end_date)
+    # Drop the unnecessary columns
+    df = df[["timestamp", "adj_close", "volume", "ticker_id"]]
+    # Convert the ticker_id column to string - this is required to create new column names based on that column
+    df["ticker_id"] = df["ticker_id"].apply(str)
+    # Apply the pivot function, to create a multicolumn_index based on values and ticker_id, set timestamp as the index to avoid having this column twice
+    pivot = pd.pivot_table(data=df, columns="ticker_id",
+                           index="timestamp", values=['adj_close', 'volume'])
+    # Create the new columns
+    pivot.columns = ['-'.join(x) for x in pivot.columns]
+    # Add timestamp as a column again
+    pivot["timestamp"] = pivot.index
+    # Add a numerical index
+    pivot.index = range(1, pivot.shape[0] + 1)
+    
+    if return_timestamp is False:
+        pivot.drop(["timestamp"], axis=1, inplace=True)
+        pivot = pivot.astype(float)
+    
+    return pivot
 
 
 # Prediction methods
