@@ -13,7 +13,7 @@ import pandas as pd
 
 # Import own libraries
 from data_api.db import delete_model_by_name, return_engine, get_all_ticker_strings, get_ticker_by_ticker, get_all_models, get_model_by_name, get_new_nasdaq_tickers
-from data_api.db import get_model_by_id, model_name_exists, delete_all_models, load_formatted_train_data, create_ticker, delete_ticker_by_ticker
+from data_api.db import get_model_by_id, model_name_exists, delete_all_models, load_formatted_train_data, create_ticker, delete_ticker_by_ticker, tickers_to_ticker_ids
 from data_api.init_db import initialize_db, update_price_data_sets, update_ticker_price_data
 from models.model_func import save_model, load_model, make_predictions, convert_to_business_days
 from helper_functions import empty_data_dirs, delete_model_files_not_in_db, delete_model_files
@@ -111,10 +111,7 @@ def create_model():
         end_date = datetime.strptime(request.form['end_date'], date_format)
 
         # Convert the tickers into ticker_ids
-        model_tickers_ids = []
-        for ticker in model_tickers:
-            model_tickers_ids.append(
-                get_ticker_by_ticker(engine, ticker).Ticker.id)
+        model_tickers_ids = tickers_to_ticker_ids(engine, model_tickers)
 
         # Load the training data
         try:

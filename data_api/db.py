@@ -298,6 +298,17 @@ def get_ticker_by_id(engine, ticker_id):
     return result
 
 
+def tickers_to_ticker_ids(engine, tickers):
+    """
+    Expects a list of tickers and returns their corresponding ids in the database
+    """
+    model_tickers_ids = []
+    for ticker in tickers:
+        model_tickers_ids.append(
+            get_ticker_by_ticker(engine, ticker).Ticker.id)
+    return model_tickers_ids
+
+
 def get_ticker_instances(engine, ticker_ids):
     """
     This method returns the database instance for each ticker object with the specified ticker_id in ticker_ids
