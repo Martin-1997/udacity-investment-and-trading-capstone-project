@@ -500,13 +500,15 @@ def delete_price_data_set_by_ticker_id(engine, ticker_id):
         return ticker_id
 
 
-def load_formatted_train_data(engine, ticker_ids, start_date=dt(1900, 1, 1), end_date=dt.today(), return_timestamp = True):
+def load_formatted_train_data(engine, ticker_ids, start_date=dt(1900, 1, 1), end_date=dt.today(), return_timestamp = True, dropna=True):
     """
     Loads the data from the databse and returns a formated dataframe with the following columns:
 
     index | adj-close-{id1} | adj-close-id{2} | ... | volume-{id1} | volume-{id2} | ... | timestamp
 
     If "return_timestamp = False", no timestamp is going to be returned
+    
+    If "dropna = True", all dates for which data is missing are completly dropped
     """
     # Drop all ticker_ids which exist multiple times
     ticker_ids = set(ticker_ids)
@@ -529,6 +531,10 @@ def load_formatted_train_data(engine, ticker_ids, start_date=dt(1900, 1, 1), end
     if return_timestamp is False:
         pivot.drop(["timestamp"], axis=1, inplace=True)
         pivot = pivot.astype(float)
+        
+    if dropna:
+        pivot.dropna(axis = 0, how='any', inplace = True)
+        pivot.reset_index(drop = True, inplace = True)
     
     return pivot
 
