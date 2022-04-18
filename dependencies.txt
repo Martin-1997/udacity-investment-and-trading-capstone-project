@@ -11,3 +11,4 @@ pandas_datareader
 sqlalchemy
 matplotlib
 sklearn
+scikeras # For wrapping Keras models into SciKit Lean
