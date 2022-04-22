@@ -362,4 +362,4 @@ def about():
 if __name__ == '__main___':
     # threaded = True -> Automatically create a new thread for every session/user
     # app.run(port=5000, debug=False, threaded=True)
-    socketio.run(port=5000, debug=False, threaded=True)
+    socketio.run(port=5000, debug=False, threaded=False)
