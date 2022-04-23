@@ -116,7 +116,7 @@ def create_model():
         # Load the training data
         try:
             train_data = load_formatted_train_data(
-                engine, model_tickers_ids, start_date, end_date)
+                engine, model_tickers_ids, start_date, end_date, return_timestamp = False)
         except ValueError as value_error:
             print(value_error)
             print(f"The model could not be created: {value_error}")
@@ -197,6 +197,7 @@ def select_model():
 
 @app.route('/predict', methods=['GET', 'POST'])
 def predict():
+    print(session.get("model_id") )
     if session.get("model_id") != None:
         model = get_model_by_id(engine, session["model_id"])
         tickers = []
@@ -336,6 +337,7 @@ def config():
             if "reset_db" in request.form:
                 empty_data_dirs(model_dir, scaler_dir)
                 initialize_db(database_dir)
+                session["model_id"] = None
                 return render_template('config.html', notification_message="Database reseted successfully")
             elif "update_db" in request.form:
                 update_price_data_sets(engine)

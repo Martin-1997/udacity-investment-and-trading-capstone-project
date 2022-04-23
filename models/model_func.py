@@ -5,6 +5,8 @@ import pandas as pd
 import keras
 from keras.models import Sequential
 from keras.layers import Dense, LSTM, Dropout
+from keras import metrics
+import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
 from pandas.tseries.offsets import CustomBusinessDay
 from pandas.tseries.holiday import USFederalHolidayCalendar
@@ -19,22 +21,40 @@ def print_performance(history):
     print("\n")
 
 
-def get_model(input_shape, output_shape, print_summary=True):
+# def get_model(input_shape, output_shape, print_summary=True):
+#     """
+#     Returns a predefined model object
+#     """
+#     model = Sequential()
+#     model.add(LSTM(64, activation='relu', input_shape=(
+#         input_shape[1], input_shape[2]), return_sequences=True))
+#     model.add(LSTM(32, activation='relu', return_sequences=False))
+#     model.add(Dropout(0.2))
+#     # If non-negative return values are required, this should be accomplished by the layers in the network. Anyway, with only non-negative input values, negative output values are very unlikely.
+#     # The relu activation function only returns positive values. -> This returns the same values for each predicted date
+#     model.add(Dense(output_shape[2]))  # ,  W_constraint=nonneg()))
+#     model.compile(optimizer='adam', loss='mse')
+#     print("Model was successfully created:")
+#     if print_summary:
+#         print(model.summary())
+#     return model
+
+def get_model(input_shape, output_shape, activation="relu", init_mode='uniform', learning_rate=0.001,beta_1=0.9,beta_2=0.999,amsgrad=False, dropout_rate=0.2):
     """
     Returns a predefined model object
     """
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta_1, beta_2=beta_2, amsgrad=amsgrad)
     model = Sequential()
-    model.add(LSTM(64, activation='relu', input_shape=(
-        input_shape[1], input_shape[2]), return_sequences=True))
-    model.add(LSTM(32, activation='relu', return_sequences=False))
-    model.add(Dropout(0.2))
+    model.add(LSTM(64, activation=activation, input_shape=(
+        input_shape[1], input_shape[2]), return_sequences=True, kernel_initializer=init_mode))
+    model.add(LSTM(32, activation=activation, return_sequences=False, kernel_initializer=init_mode))
+    model.add(Dropout(dropout_rate))
     # If non-negative return values are required, this should be accomplished by the layers in the network. Anyway, with only non-negative input values, negative output values are very unlikely.
     # The relu activation function only returns positive values. -> This returns the same values for each predicted date
     model.add(Dense(output_shape[2]))  # ,  W_constraint=nonneg()))
-    model.compile(optimizer='adam', loss='mse')
-    print("Model was successfully created:")
-    if print_summary:
-        print(model.summary())
+    model.compile(optimizer=optimizer, loss='mean_squared_error',metrics=[
+        metrics.RootMeanSquaredError(),
+    ])
     return model
 
 
@@ -57,7 +77,7 @@ def create_train_test_arrays(n_past, df):
     return trainX, trainY
 
 
-def create_model(data,  n_past=60):
+def create_model(data,  n_past=120):
     """
     Prepares the data and creates and trains a model
     """
@@ -73,13 +93,17 @@ def create_model(data,  n_past=60):
     trainX, trainY = create_train_test_arrays(
         n_past=n_past, df=df_for_training_scaled)
 
-    model = get_model(input_shape=trainX.shape,
-                      output_shape=trainY.shape, print_summary=False)
 
-    # fit the model
-    history = model.fit(trainX, trainY, epochs=1,
-                        batch_size=16, validation_split=0.1, verbose=1)
-    print("Model training successfull")
+    # Best model for 30 days:
+    # model = get_model(input_shape=trainX.shape, output_shape=trainY.shape, activation="relu", init_mode='uniform', learning_rate=0.01,beta_1=0.8, beta_2=0.89,amsgrad=False, dropout_rate=0.2)
+
+    # Best model for 120 days:
+    model = get_model(input_shape=trainX.shape, output_shape=trainY.shape, activation="relu", init_mode='uniform', learning_rate=0.1,beta_1=0.9, beta_2=0.89,amsgrad=True, dropout_rate=0.2)
+    
+    # Best model for 30 days:
+    # history = model.fit(trainX, trainY, epochs=250, batch_size=32, validation_split=0.1, verbose=1)
+     # Best model for 30 days:
+    history = model.fit(trainX, trainY, epochs=10, batch_size=64, validation_split=0.1, verbose=1)
 
     return model, trainX[-1], scaler, data.columns
 
