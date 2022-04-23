@@ -50,6 +50,8 @@ Additionally, here you can find an overview of the remaining files and folders i
 
 ***helper_functions.py:*** This file contains some helper functions to read and write data to the disk.
 
+**modelling_tests.ipynb and run_notebook.py**: Used for performing GridSearch and to test model training. Not required for running the Flask App.
+
 # Problem Introduction
 From the Yahoo Finance API, we get the 6 different values for each day. High price, low price, open price, close price, adjusted close price and volume. The 5 price data variables are all closely linked together, and only the adjusted close price reflects additional events like divident payouts or stock splits. Therefore, we only consider the adjusted close price (now referred to as "price") and the volume for our models. 
 
