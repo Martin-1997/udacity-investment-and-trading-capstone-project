@@ -13,7 +13,7 @@
 
         <div class="ui segment" id="not-created">
             <form action="" method='POST' name="createModelForm">
-                <label for="model_name">Specify a name for the model (WARNING: If you choose the name of an already existing model, this model will be overwritten): </label>
+                <label for="model_name">Specify a name for the model:</label>
                 <br>
                 <input type="text" name="model_name" id="model_name" value="Test-model" required></input>
                 <br>
@@ -84,7 +84,7 @@
         $('#rangestart').calendar({
             type: 'date',
             startMode: 'year',
-            initialDate: new Date('2021-10-31'),
+            initialDate: new Date('2021-03-31'),
             minDate : new Date('2000-01-01'),
             endCalendar: $('#rangeend'),
             maxDate: today,

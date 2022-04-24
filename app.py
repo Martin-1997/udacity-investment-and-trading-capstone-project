@@ -197,13 +197,12 @@ def select_model():
 
 @app.route('/predict', methods=['GET', 'POST'])
 def predict():
-    print(session.get("model_id") )
     if session.get("model_id") != None:
         model = get_model_by_id(engine, session["model_id"])
         tickers = []
         for ticker in model.tickers:
             tickers.append(ticker.ticker)
-        return render_template('predict.html', model_tickers=tickers, start_date=model.start_date, end_date=model.end_date)
+        return render_template('predict.html', model_tickers=tickers, start_date=model.start_date, end_date=model.end_date, model_name = model.model_name)
     # No POST method (with parameters) or no parameters set
     else:
         return render_template('prediction_missing_values.html')

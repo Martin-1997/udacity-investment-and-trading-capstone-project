@@ -3,8 +3,12 @@
 <div class="ui container">
     <div class="ui segment">
 
-        <h1>The model was successfully loaded</h1>
+        <h1>The model "{{model_name}}" was  successfully loaded</h1>
     </div>
+
+    <p>
+        {{ model_name }}
+    </p>
 
     <div class="ui segment">
         <h4>Start Date is: {{start_date}}</h4>
@@ -98,13 +102,14 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="extra content" id='remove_` + nextindex + `'>
-                            <span class='remove'>
+                        <div class="extra content" >
+                            <span class='remove' id='remove_` + nextindex + `'>
                                 <div class="ui basic red button" >Remove</div>  
                             </span>
                         </div>  
                     </div>
             `);
+            // Fill calendar widget with the current date
             var today = new Date();
             var tomorrow = new Date();
             tomorrow.setDate(today.getDate() + 1)
@@ -115,9 +120,9 @@
                 selectAdjacentDays: true,
             });
 
-            // Remove element
+            // Remove element when "Remove"-Button is clicked
             $('#card_' + nextindex).on('click', '.remove', function () {
-
+                console.log("Remove clicked")
                 var id = this.id;
                 var split_id = id.split("_");
                 var deleteindex = split_id[1];

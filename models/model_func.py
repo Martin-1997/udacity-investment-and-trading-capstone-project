@@ -90,20 +90,19 @@ def create_model(data,  n_past=120):
     df_for_training_scaled = scaler.transform(data)
     print(f"Dataset successfully scaled. n_features of the scaler: {scaler.n_features_in_}")
 
-    trainX, trainY = create_train_test_arrays(
-        n_past=n_past, df=df_for_training_scaled)
+    trainX, trainY = create_train_test_arrays(n_past=n_past, df=df_for_training_scaled)
 
 
     # Best model for 30 days:
     # model = get_model(input_shape=trainX.shape, output_shape=trainY.shape, activation="relu", init_mode='uniform', learning_rate=0.01,beta_1=0.8, beta_2=0.89,amsgrad=False, dropout_rate=0.2)
 
     # Best model for 120 days:
-    model = get_model(input_shape=trainX.shape, output_shape=trainY.shape, activation="relu", init_mode='uniform', learning_rate=0.1,beta_1=0.9, beta_2=0.89,amsgrad=True, dropout_rate=0.2)
+    model = get_model(input_shape=trainX.shape, output_shape=trainY.shape, activation="relu", init_mode='uniform', learning_rate=0.01,beta_1=0.9, beta_2=0.89,amsgrad=True, dropout_rate=0.8)
     
     # Best model for 30 days:
     # history = model.fit(trainX, trainY, epochs=250, batch_size=32, validation_split=0.1, verbose=1)
      # Best model for 30 days:
-    history = model.fit(trainX, trainY, epochs=10, batch_size=64, validation_split=0.1, verbose=1)
+    history = model.fit(trainX, trainY, epochs=50, batch_size=128, validation_split=0.1, verbose=1)
 
     return model, trainX[-1], scaler, data.columns
 
