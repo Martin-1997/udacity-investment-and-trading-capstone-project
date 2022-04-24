@@ -88,7 +88,7 @@ If we look at our training, data, we recognize different magnitudes especially w
 A further important aspect is to how precisely define our training data. What data should be the input for the output, and what should be the output.
 We take a amount of x consecutive days as the input and predict the data for the next day as the output. It needs to be determined, what is the optimal amount of days. After running several model instances with different values for x, we get the results shown in the diagram:
 
-![Comparison for different day ranges as input data](https://github.com/Martin-1997/udacity-investment-and-trading-capstone-project/tree/main/images/time_range_input_data_comparison.png)
+![Comparison for different day ranges as input data](https://raw.githubusercontent.com/Martin-1997/udacity-investment-and-trading-capstone-project/main/images/time_range_input_data_comparison.png)
 
 As we can see, we get the best results with x = 120 days.
 
@@ -122,10 +122,18 @@ We also notice, that by just tuning batch_size and epochs, we get a better resul
 Furthermore, we can check different parameters for our adam activation function.
 The adam optimizer has several different parameters which we can test and combine to find a more optimal solution for our problem than with the default adam parameters.
 
-| **day_range** | **optimizer__amsgrad** | **optimizer__beta_1** | **optimizer__beta_2** | **optimizer__learning_rate** | **root_mean_squared_error** |
-|---------------|------------------------|-----------------------|-----------------------|------------------------------|-----------------------------|
-| 30            | False                  | 0.8                   | 0.89                  | 0.01                         | 0.8073114933087524          |
-| 120           | True                   | 0.9                   | 0.89                  | 0.1                          | 0.5844816053348458          |
+| **day_range** | **optimizer__amsgrad** | **optimizer__beta_1** | **optimizer__beta_2** | **optimizer__learning_rate** |
+|---------------|------------------------|-----------------------|-----------------------|------------------------------|
+| 30            | False                  | 0.8                   | 0.89                  | 0.01                         |
+| 120           | True                   | 0.9                   | 0.89                  | 0.1                          |
+
+
+This leads to the following results:
+| **day_range** | **neg_root_mean_squared_error** | **root_mean_squared_error** |
+|---------------|---------------------------------|-----------------------------|
+| 30            | - 0.8073114933087524            | 0.8073114933087524          |
+| 120           | -0.5844816053348458             | 0.5844816053348458          |
+
 
 We can see that by tuning different parameters of the adam algorithm, we can optimize our 120-day model even better than our 30-days model.
 
