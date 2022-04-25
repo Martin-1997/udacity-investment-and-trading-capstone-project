@@ -94,7 +94,7 @@ As we can see, we get the best results with x = 120 days.
 
 # Hyperparameter tuning
 
-Now that we have our dataset ready, we need to find out what is a good model to predict the data set for the next price based on the last 120 data sets. After trying out several amounts of layers, we conclude that having two layers with 64 and 32 nodes leads to a quite good result. We choose the adam optimizer because it is known to be a good and efficient optimizer for regression problems.
+Now that we have our dataset ready, we need to find out what is a good model to predict the data set for the next price based on the last 120 data sets. After trying out several amounts of layers, we conclude that having two layers with 32 and 32 nodes leads to a quite good result. We choose the adam optimizer because it is known to be a good and efficient optimizer for regression problems.
 
 We can use GridSearchCV to further optimize our model. First, we check different combinations of batch_sizes and epochs to see which combinations leads to the best result.
 
@@ -141,9 +141,9 @@ We can see that by tuning different parameters of the adam algorithm, we can opt
 After testing different LSTM networks, hyperparameters and training parameters either manually, or by the use of GridSearch, we can come to a conclusion for a quite good model:
 
 - 120 days as input data to predict for day 121
-- 2 LSTM layers with 64 and 32 nodes respectively
+- 2 LSTM layers with 32 nodes each
 - Batch size for training of 64 and 10 training epochs
-- Best parameters for the adam algorithm can be found in the section [Hyperparameters for adam optimizer](##Hyperparameters for adam optimizer)
+- Best parameters for the adam algorithm can be found in the section [Hyperparameters for adam optimizer](#hyperparameters-for-adam-optimizer)
 
 # Conclusion/Reflection
 Training machine learning models is a very time intensive process, if it is done wrong. Therefore I come to the following conclusions to speed up development in the future:

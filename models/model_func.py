@@ -45,7 +45,7 @@ def get_model(input_shape, output_shape, activation="relu", init_mode='uniform',
     """
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta_1, beta_2=beta_2, amsgrad=amsgrad)
     model = Sequential()
-    model.add(LSTM(64, activation=activation, input_shape=(
+    model.add(LSTM(32, activation=activation, input_shape=(
         input_shape[1], input_shape[2]), return_sequences=True, kernel_initializer=init_mode))
     model.add(LSTM(32, activation=activation, return_sequences=False, kernel_initializer=init_mode))
     model.add(Dropout(dropout_rate))
